@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e  # Salir inmediatamente si cualquier comando falla
+
+echo "=== Iniciando proceso de construcción para Render ==="
+
+# Mostrar información del entorno
+echo "=== Información del entorno ==="
+echo "Node version: $(node -v)"
+echo "NPM version: $(npm -v)"
+echo "Directorio actual: $(pwd)"
+
+# Instalar dependencias con opciones adicionales
+echo "=== Instalando dependencias ==="
+npm ci
+
+# Construir la aplicación
+echo "=== Construyendo la aplicación ==="
+NODE_OPTIONS="--max-old-space-size=4096" npm run build
+
+# Verificar si la construcción fue exitosa
+if [ -d ".next" ]; then
+    echo "=== Construcción exitosa. Directorio .next creado ==="
+    ls -la .next
+    
+    # Crear directorio .next-backup en una ubicación persistente
+    echo "=== Creando copia de seguridad del directorio .next ==="
+    mkdir -p /opt/render/.next-backup
+    cp -r .next/* /opt/render/.next-backup/
+    echo "=== Copia de seguridad creada en /opt/render/.next-backup ==="
+else
+    echo "=== ERROR: La construcción falló. No se encontró el directorio .next ==="
+    exit 1
+fi
+
+echo "=== Proceso de construcción completado ==="

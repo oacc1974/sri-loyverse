@@ -84,7 +84,8 @@ export class XMLService {
 
     // Agregar información adicional si existe
     if (factura.infoAdicional && factura.infoAdicional.length > 0) {
-      xmlObj.factura.infoAdicional = {
+      // Usar asignación con tipo para evitar error de TypeScript
+      (xmlObj.factura as any).infoAdicional = {
         campoAdicional: factura.infoAdicional.map(info => ({
           _attributes: {
             nombre: info.nombre
