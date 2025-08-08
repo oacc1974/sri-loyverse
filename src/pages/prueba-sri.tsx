@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Configuracion } from '../models/configuracion';
 import axios from 'axios';
 
+// Definir la interfaz para la factura
+interface Factura {
+  facturaId: string;
+  loyverseId: string;
+  estado: string;
+  // Añadir otros campos según sea necesario
+}
+
 export default function PruebaSRI() {
   const [configuracion, setConfiguracion] = useState<Configuracion | null>(null);
-  const [facturas, setFacturas] = useState<any[]>([]);
+  const [facturas, setFacturas] = useState<Factura[]>([]);
   const [selectedFactura, setSelectedFactura] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [resultado, setResultado] = useState<any>(null);
@@ -47,8 +55,8 @@ export default function PruebaSRI() {
       });
       
       if (response.data.success) {
-        setFacturas(response.data.data);
-        setSuccess(`Se cargaron ${response.data.data.length} facturas de Loyverse`);
+        setFacturas(response.data.facturas || []);
+        setSuccess(`Se cargaron ${response.data.facturas?.length || 0} facturas de Loyverse`);
       } else {
         setError('Error al cargar facturas: ' + response.data.message);
       }
@@ -78,7 +86,7 @@ export default function PruebaSRI() {
     
     try {
       // Encontrar la factura seleccionada
-      const factura = facturas.find(f => f.id === selectedFactura);
+      const factura = facturas.find((f: Factura) => f.facturaId === selectedFactura);
       if (!factura) {
         throw new Error('Factura no encontrada');
       }
@@ -150,8 +158,8 @@ export default function PruebaSRI() {
           >
             <option value="">Selecciona una factura</option>
             {facturas.map((factura) => (
-              <option key={factura.id} value={factura.id}>
-                {factura.receipt_number} - {new Date(factura.receipt_date).toLocaleString()} - ${factura.total_money}
+              <option key={factura.facturaId} value={factura.facturaId}>
+                {factura.loyverseId} - {factura.estado}
               </option>
             ))}
           </select>
