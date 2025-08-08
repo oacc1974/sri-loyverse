@@ -93,11 +93,9 @@ export default function PruebaSRI() {
 
       // Enviar a procesar
       const response = await axios.post('/api/factura/procesar', {
-        factura,
-        certificado: configuracion.certificadoBase64,
-        clave: configuracion.claveCertificado,
-        ambiente: configuracion.ambiente === 'produccion' ? '2' : '1',
-        configuracion
+        facturaId: factura.facturaId,
+        accion: 'PROCESO_COMPLETO',
+        ambiente: configuracion.ambiente === 'produccion' ? '2' : '1'
       });
       
       if (response.data.success) {
