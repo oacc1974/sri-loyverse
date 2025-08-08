@@ -179,15 +179,27 @@ export class XMLService {
       // Cargar el certificado
       const p12 = fs.readFileSync(certificadoPath);
       
-      // En versiones recientes de Node.js, no se usa el parámetro 'type' con valor 'pkcs12'
-      // En su lugar, se pasa directamente el buffer y la contraseña
-      const p12Asn1 = crypto.createPrivateKey({
-        key: p12,
-        passphrase: clave
-      });
-      
-      // Configurar opciones de firma
-      sig.signingKey = p12Asn1;
+      // En versiones recientes de Node.js, la API ha cambiado
+      // Necesitamos exportar la clave privada como un Buffer para xml-crypto
+      try {
+        // Primero creamos el objeto KeyObject
+        const p12Asn1 = crypto.createPrivateKey({
+          key: p12,
+          passphrase: clave
+        });
+        
+        // Luego exportamos la clave como un Buffer PEM que xml-crypto pueda usar
+        const privateKeyPem = p12Asn1.export({
+          type: 'pkcs8',
+          format: 'pem'
+        });
+        
+        // Configurar opciones de firma con el Buffer
+        sig.signingKey = privateKeyPem;  // Ahora es un string PEM compatible
+      } catch (error: any) {
+        console.error('Error al procesar el certificado:', error);
+        throw new Error(`Error al procesar el certificado: ${error.message || 'Error desconocido'}`);
+      }
       sig.keyInfoProvider = {
         getKeyInfo: () => {
           // Aquí se debe extraer el certificado X509 del p12
