@@ -3,6 +3,13 @@ set -e  # Salir inmediatamente si cualquier comando falla
 
 echo "=== Iniciando proceso de construcción para Render ==="
 
+# Eliminar archivos conflictivos
+echo "=== Eliminando archivos conflictivos ==="
+if [ -f "src/app/configuracion/page.tsx" ]; then
+  echo "Eliminando archivo conflictivo: src/app/configuracion/page.tsx"
+  rm -f "src/app/configuracion/page.tsx"
+fi
+
 # Mostrar información del entorno
 echo "=== Información del entorno ==="
 echo "Node version: $(node -v)"
