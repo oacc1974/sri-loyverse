@@ -24,13 +24,19 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     // Buscar la clave privada y el certificado
     try {
       const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-      if (keyBags && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]) {
-        privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key || null;
+      if (keyBags && 
+          keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] && 
+          keyBags[forge.pki.oids.pkcs8ShroudedKeyBag].length > 0 && 
+          keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key) {
+        privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
       }
       
       const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-      if (certBags && certBags[forge.pki.oids.certBag]) {
-        cert = certBags[forge.pki.oids.certBag][0].cert || null;
+      if (certBags && 
+          certBags[forge.pki.oids.certBag] && 
+          certBags[forge.pki.oids.certBag].length > 0 && 
+          certBags[forge.pki.oids.certBag][0].cert) {
+        cert = certBags[forge.pki.oids.certBag][0].cert;
       }
     } catch (error: any) {
       throw new Error(`Error al procesar el certificado: ${error?.message || 'Error desconocido'}`);
