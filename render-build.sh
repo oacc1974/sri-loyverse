@@ -25,7 +25,9 @@ if [ -d ".next" ]; then
     # Crear directorio .next-backup en una ubicación persistente
     echo "=== Creando copia de seguridad del directorio .next ==="
     mkdir -p /opt/render/.next-backup
+    rm -rf /opt/render/.next-backup/*  # Limpiar backup anterior
     cp -r .next/* /opt/render/.next-backup/
+    ls -la /opt/render/.next-backup  # Verificar contenido del backup
     echo "=== Copia de seguridad creada en /opt/render/.next-backup ==="
 else
     echo "=== ERROR: La construcción falló. No se encontró el directorio .next ==="
