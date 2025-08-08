@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { Factura, Cliente, ProductoDetalle } from './factura';
 
 // Extendemos la interfaz Factura para incluir los métodos de Document de Mongoose
-export interface FacturaDocument extends Factura, Document {}
+// Usamos Omit para evitar conflicto con la propiedad 'id'
+export interface FacturaDocument extends Omit<Factura, 'id'>, Document {}
 
 // Schema para Cliente
 const ClienteSchema = new Schema({

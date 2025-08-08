@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { Configuracion } from './configuracion';
 
 // Extendemos la interfaz Configuracion para incluir los métodos de Document de Mongoose
-export interface ConfiguracionDocument extends Configuracion, Document {}
+// Usamos Omit para evitar conflicto con la propiedad 'id'
+export interface ConfiguracionDocument extends Omit<Configuracion, 'id'>, Document {}
 
 // Schema para Configuracion
 const ConfiguracionSchema = new Schema({
