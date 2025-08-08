@@ -196,17 +196,23 @@ export class XMLService {
         
         // Configurar opciones de firma con el Buffer
         sig.signingKey = privateKeyPem;  // Ahora es un string PEM compatible
+        
+        // Configurar el proveedor de información de clave dentro del mismo scope
+        sig.keyInfoProvider = {
+          getKeyInfo: () => {
+            // Aquí se debe extraer el certificado X509 del p12
+            // Esta es una implementación simplificada
+            return `<X509Data><X509Certificate>${certificadoBase64}</X509Certificate></X509Data>`;
+          },
+          getKey: () => {
+            // Devolver la clave privada para la firma
+            return privateKeyPem;
+          }
+        };
       } catch (error: any) {
         console.error('Error al procesar el certificado:', error);
         throw new Error(`Error al procesar el certificado: ${error.message || 'Error desconocido'}`);
       }
-      sig.keyInfoProvider = {
-        getKeyInfo: () => {
-          // Aquí se debe extraer el certificado X509 del p12
-          // Esta es una implementación simplificada
-          return `<X509Data><X509Certificate>${certificadoBase64}</X509Certificate></X509Data>`;
-        }
-      };
       
       // Configurar transformaciones
       sig.addReference(
