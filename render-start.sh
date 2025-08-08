@@ -16,5 +16,11 @@ else
 fi
 
 # Iniciar la aplicación
-echo "=== Iniciando aplicación ==="
-npm start
+echo "=== Iniciando aplicación en modo standalone ==="
+# Usar el comando recomendado para output: standalone
+if [ -f "./.next/standalone/server.js" ]; then
+    node ./.next/standalone/server.js
+else
+    echo "=== No se encontró server.js en modo standalone, usando npm start ==="
+    npm start
+fi
