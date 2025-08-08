@@ -40,12 +40,26 @@ else
 fi
 
 # Iniciar la aplicación
-echo "=== Iniciando aplicación en modo standalone ==="
-# Usar el comando recomendado para output: standalone
-if [ -f "./.next/standalone/server.js" ]; then
-    echo "=== Iniciando con node ./.next/standalone/server.js ==="
-    NODE_ENV=production node ./.next/standalone/server.js
+echo "=== Iniciando aplicación con servidor personalizado ==="
+# Verificar si existe el archivo server-custom.js
+if [ -f "./server-custom.js" ]; then
+    echo "=== Iniciando con node ./server-custom.js ==="
+    # Copiar node_modules al directorio standalone si es necesario
+    if [ -d "./.next/standalone" ] && [ ! -d "./.next/standalone/node_modules/next" ]; then
+        echo "=== Copiando node_modules a directorio standalone ==="
+        mkdir -p ./.next/standalone/node_modules
+        cp -r ./node_modules/next ./.next/standalone/node_modules/
+    fi
+    # Iniciar con servidor personalizado
+    NODE_ENV=production PORT=${PORT:-10000} node ./server-custom.js
 else
-    echo "=== No se encontró server.js en modo standalone, usando npm start ==="
-    npm start
+    echo "=== No se encontró server-custom.js, intentando con server.js ==="
+    # Usar el comando recomendado para output: standalone
+    if [ -f "./.next/standalone/server.js" ]; then
+        echo "=== Iniciando con node ./.next/standalone/server.js ==="
+        NODE_ENV=production PORT=${PORT:-10000} node ./.next/standalone/server.js
+    else
+        echo "=== No se encontró server.js en modo standalone, usando npm start ==="
+        npm start
+    fi
 fi
