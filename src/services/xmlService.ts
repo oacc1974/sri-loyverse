@@ -239,3 +239,15 @@ export class XMLService {
     }
   }
 }
+
+// Instancia del servicio XML para uso externo
+const xmlService = new XMLService();
+
+/**
+ * Genera el XML para una factura según el formato del SRI
+ * @param factura Datos de la factura
+ * @returns XML generado
+ */
+export async function generarXML(factura: Factura): Promise<string> {
+  return xmlService.generateXML(factura);
+}

@@ -273,3 +273,25 @@ export class SRIService {
     }
   }
 }
+
+// Instancia del servicio SRI para uso externo
+// Usar ambiente de pruebas ('1') por defecto
+const sriService = new SRIService('1');
+
+/**
+ * Envía un XML firmado al servicio de recepción del SRI
+ * @param xmlFirmado XML firmado en formato string
+ * @returns Respuesta del SRI
+ */
+export async function enviarSRI(xmlFirmado: string): Promise<any> {
+  return await sriService.enviarComprobante(xmlFirmado);
+}
+
+/**
+ * Consulta el estado de autorización de un comprobante en el SRI
+ * @param claveAcceso Clave de acceso del comprobante
+ * @returns Respuesta del SRI
+ */
+export async function verificarAutorizacion(claveAcceso: string): Promise<any> {
+  return await sriService.consultarAutorizacion(claveAcceso);
+}
