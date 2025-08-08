@@ -138,7 +138,7 @@ async function enviarDocumento(res: NextApiResponse, factura: any, configuracion
     }
     
     // Enviar al SRI
-    const respuestaSRI = await enviarSRI(factura.xmlFirmado, factura.ambiente);
+    const respuestaSRI = await enviarSRI(factura.xmlFirmado);
     
     // Actualizar la factura con la respuesta del SRI
     factura.respuestaSRI = respuestaSRI;
@@ -176,10 +176,7 @@ async function autorizarDocumento(res: NextApiResponse, factura: any, configurac
     }
     
     // Verificar autorización en el SRI
-    const respuestaAutorizacion = await verificarAutorizacion(
-      factura.claveAcceso, 
-      factura.ambiente
-    );
+    const respuestaAutorizacion = await verificarAutorizacion(factura.claveAcceso);
     
     // Actualizar la factura con la respuesta de autorización
     factura.numeroAutorizacion = respuestaAutorizacion.numeroAutorizacion;
@@ -224,16 +221,13 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     }
     
     // 2. Enviar
-    const respuestaSRI = await enviarSRI(factura.xmlFirmado, factura.ambiente);
+    const respuestaSRI = await enviarSRI(factura.xmlFirmado);
     factura.respuestaSRI = respuestaSRI;
     factura.estado = respuestaSRI.estado || 'ENVIADO';
     await factura.save();
     
     // 3. Autorizar (verificar)
-    const respuestaAutorizacion = await verificarAutorizacion(
-      factura.claveAcceso, 
-      factura.ambiente
-    );
+    const respuestaAutorizacion = await verificarAutorizacion(factura.claveAcceso);
     
     factura.numeroAutorizacion = respuestaAutorizacion.numeroAutorizacion;
     factura.fechaAutorizacion = respuestaAutorizacion.fechaAutorizacion;
