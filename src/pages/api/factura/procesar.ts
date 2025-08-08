@@ -40,15 +40,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     
-    // Obtener la configuración activa
-    const configuracion = await ConfiguracionModel.findOne({
+    // Obtener la configuración activa o usar los parámetros enviados
+    let configuracion = await ConfiguracionModel.findOne({
       ambiente: factura.ambiente
     }).sort({ createdAt: -1 });
     
-    if (!configuracion) {
+    // Si no hay configuración, usar los parámetros enviados desde el frontend
+    if (!configuracion && req.body.certificadoBase64 && req.body.claveCertificado) {
+      // Crear una configuración temporal con los datos enviados
+      configuracion = {
+        certificadoBase64: req.body.certificadoBase64,
+        claveCertificado: req.body.claveCertificado,
+        ambiente: factura.ambiente,
+        // Valores predeterminados para otros campos requeridos
+        ruc: req.body.ruc || '9999999999999',
+        razonSocial: req.body.razonSocial || 'EMPRESA DE PRUEBA',
+        nombreComercial: req.body.nombreComercial || 'EMPRESA DE PRUEBA',
+        direccion: req.body.direccion || 'DIRECCIÓN DE PRUEBA',
+        email: req.body.email || 'prueba@ejemplo.com'
+      };
+    } else if (!configuracion) {
       return res.status(404).json({ 
         success: false, 
-        message: `No se encontró configuración para el ambiente ${factura.ambiente}` 
+        message: `No se encontró configuración para el ambiente ${factura.ambiente}. Envía certificado y clave en la solicitud.` 
       });
     }
     
