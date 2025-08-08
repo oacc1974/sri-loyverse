@@ -178,10 +178,11 @@ export class XMLService {
       
       // Cargar el certificado
       const p12 = fs.readFileSync(certificadoPath);
+      
+      // En versiones recientes de Node.js, no se usa el parámetro 'type' con valor 'pkcs12'
+      // En su lugar, se pasa directamente el buffer y la contraseña
       const p12Asn1 = crypto.createPrivateKey({
         key: p12,
-        format: 'der',
-        type: 'pkcs12',
         passphrase: clave
       });
       
