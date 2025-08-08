@@ -22,21 +22,19 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     let cert: forge.pki.Certificate | null = null;
     
     // Buscar la clave privada y el certificado
-    p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag }, (err, bags) => {
-      if (err) throw new Error(`Error al obtener la clave privada: ${err.message}`);
-      
-      if (bags && bags[forge.pki.oids.pkcs8ShroudedKeyBag]) {
-        privateKey = bags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key || null;
+    try {
+      const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+      if (keyBags && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]) {
+        privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key || null;
       }
-    });
-    
-    p12.getBags({ bagType: forge.pki.oids.certBag }, (err, bags) => {
-      if (err) throw new Error(`Error al obtener el certificado: ${err.message}`);
       
-      if (bags && bags[forge.pki.oids.certBag]) {
-        cert = bags[forge.pki.oids.certBag][0].cert || null;
+      const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+      if (certBags && certBags[forge.pki.oids.certBag]) {
+        cert = certBags[forge.pki.oids.certBag][0].cert || null;
       }
-    });
+    } catch (error: any) {
+      throw new Error(`Error al procesar el certificado: ${error?.message || 'Error desconocido'}`);
+    }
     
     if (!privateKey || !cert) {
       throw new Error('No se pudo extraer la clave privada o el certificado');
