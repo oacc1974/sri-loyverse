@@ -15,11 +15,36 @@ else
     echo "=== Intentando iniciar de todos modos ==="
 fi
 
+# Mostrar variables de entorno (sin valores sensibles)
+echo "=== Verificando variables de entorno ==="
+if [ -n "$MONGODB_URI" ]; then
+    echo "MONGODB_URI está configurada"
+else
+    echo "ADVERTENCIA: MONGODB_URI no está configurada"
+fi
+
+# Verificar directorios
+echo "=== Verificando directorios ==="
+ls -la
+echo "=== Contenido de .next (si existe) ==="
+if [ -d ".next" ]; then
+    ls -la .next
+    if [ -d ".next/standalone" ]; then
+        echo "=== Contenido de .next/standalone ==="
+        ls -la .next/standalone
+    else
+        echo "ADVERTENCIA: No existe el directorio .next/standalone"
+    fi
+else
+    echo "ADVERTENCIA: No existe el directorio .next"
+fi
+
 # Iniciar la aplicación
 echo "=== Iniciando aplicación en modo standalone ==="
 # Usar el comando recomendado para output: standalone
 if [ -f "./.next/standalone/server.js" ]; then
-    node ./.next/standalone/server.js
+    echo "=== Iniciando con node ./.next/standalone/server.js ==="
+    NODE_ENV=production node ./.next/standalone/server.js
 else
     echo "=== No se encontró server.js en modo standalone, usando npm start ==="
     npm start

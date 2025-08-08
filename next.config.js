@@ -10,6 +10,18 @@ const nextConfig = {
   },
   // Configuración para despliegue en Render
   output: 'standalone',
+  // Configuraciones adicionales para mejorar compatibilidad
+  poweredByHeader: false,
+  generateEtags: false,
+  // Configurar puerto para Render
+  serverRuntimeConfig: {
+    PORT: process.env.PORT || 10000
+  },
+  // Configuración para manejo de imágenes
+  images: {
+    domains: ['localhost', 'sri-loyverse.onrender.com'],
+    unoptimized: true
+  }
 }
 
 module.exports = nextConfig
