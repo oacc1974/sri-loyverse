@@ -11,7 +11,7 @@ echo "Directorio actual: $(pwd)"
 
 # Instalar dependencias con opciones adicionales
 echo "=== Instalando dependencias ==="
-npm ci
+npm install --legacy-peer-deps
 
 # Construir la aplicación
 echo "=== Construyendo la aplicación ==="
