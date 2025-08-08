@@ -205,8 +205,9 @@ export class XMLService {
             return `<X509Data><X509Certificate>${certificadoBase64}</X509Certificate></X509Data>`;
           },
           getKey: () => {
-            // Devolver la clave privada para la firma
-            return privateKeyPem;
+            // Devolver la clave privada para la firma como Buffer
+            // xml-crypto requiere que getKey devuelva un Buffer
+            return Buffer.from(privateKeyPem);
           }
         };
       } catch (error: any) {
