@@ -1,0 +1,48 @@
+{
+  "name": "loyverse-sri-integration",
+  "version": "1.0.0",
+  "description": "Sistema de integración entre Loyverse y SRI para facturación electrónica",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [
+    "loyverse",
+    "sri",
+    "facturación",
+    "electrónica",
+    "ecuador"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "axios": "^1.6.0",
+    "xml-crypto": "^3.0.0",
+    "xml-js": "^1.6.11",
+    "mongoose": "^7.5.0",
+    "multer": "^1.4.5-lts.1",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "node-cron": "^3.0.2",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/node": "^20.5.0",
+    "@types/bcryptjs": "^2.4.2",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/multer": "^1.4.7",
+    "@types/node-cron": "^3.0.8",
+    "typescript": "^5.1.6",
+    "eslint": "^8.47.0",
+    "eslint-config-next": "^14.0.0"
+  }
+}
