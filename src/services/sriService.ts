@@ -99,13 +99,13 @@ export class SRIService {
       };
       
       // Si hay mensajes, extraerlos
-      const mensajesMatch = responseData.match(/<mensajes>(.*?)<\/mensajes>/s);
+      const mensajesMatch = responseData.match(/<mensajes>([^]*?)<\/mensajes>/);
       if (mensajesMatch) {
         // Extraer mensajes (simplificado)
-        const identificadorMatch = responseData.match(/<identificador>(.*?)<\/identificador>/);
-        const mensajeMatch = responseData.match(/<mensaje>(.*?)<\/mensaje>/);
-        const infoAdicionalMatch = responseData.match(/<informacionAdicional>(.*?)<\/informacionAdicional>/);
-        const tipoMatch = responseData.match(/<tipo>(.*?)<\/tipo>/);
+        const identificadorMatch = responseData.match(/<identificador>([^]*?)<\/identificador>/);
+        const mensajeMatch = responseData.match(/<mensaje>([^]*?)<\/mensaje>/);
+        const infoAdicionalMatch = responseData.match(/<informacionAdicional>([^]*?)<\/informacionAdicional>/);
+        const tipoMatch = responseData.match(/<tipo>([^]*?)<\/tipo>/);
         
         if (identificadorMatch && mensajeMatch && tipoMatch) {
           sriResponse.mensajes = {
@@ -167,10 +167,10 @@ export class SRIService {
       };
       
       // Si hay comprobantes, extraerlos
-      const comprobantesMatch = responseData.match(/<comprobantes>(.*?)<\/comprobantes>/s);
+      const comprobantesMatch = responseData.match(/<comprobantes>([^]*?)<\/comprobantes>/);
       if (comprobantesMatch) {
         // Extraer información del comprobante (simplificado)
-        const claveAccesoMatch = responseData.match(/<claveAcceso>(.*?)<\/claveAcceso>/);
+        const claveAccesoMatch = responseData.match(/<claveAcceso>([^]*?)<\/claveAcceso>/);
         
         if (claveAccesoMatch) {
           sriResponse.comprobantes = {
@@ -180,13 +180,13 @@ export class SRIService {
           };
           
           // Si hay mensajes, extraerlos
-          const mensajesMatch = responseData.match(/<mensajes>(.*?)<\/mensajes>/s);
+          const mensajesMatch = responseData.match(/<mensajes>([^]*?)<\/mensajes>/);
           if (mensajesMatch) {
             // Extraer mensajes (simplificado)
-            const identificadorMatch = responseData.match(/<identificador>(.*?)<\/identificador>/);
-            const mensajeMatch = responseData.match(/<mensaje>(.*?)<\/mensaje>/);
-            const infoAdicionalMatch = responseData.match(/<informacionAdicional>(.*?)<\/informacionAdicional>/);
-            const tipoMatch = responseData.match(/<tipo>(.*?)<\/tipo>/);
+            const identificadorMatch = responseData.match(/<identificador>([^]*?)<\/identificador>/);
+            const mensajeMatch = responseData.match(/<mensaje>([^]*?)<\/mensaje>/);
+            const infoAdicionalMatch = responseData.match(/<informacionAdicional>([^]*?)<\/informacionAdicional>/);
+            const tipoMatch = responseData.match(/<tipo>([^]*?)<\/tipo>/);
             
             if (identificadorMatch && mensajeMatch && tipoMatch) {
               sriResponse.comprobantes.comprobante.mensajes = {
