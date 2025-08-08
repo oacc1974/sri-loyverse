@@ -11,8 +11,14 @@ export default async function handler(req, res) {
       });
     }
     
-    // Intentar conectar a MongoDB
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    // Intentar conectar a MongoDB con opciones avanzadas
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
+      socketTimeoutMS: 45000, // Timeout de socket de 45 segundos
+      retryWrites: true,
+      retryReads: true,
+      w: 'majority'
+    });
     
     // Si llegamos aquí, la conexión fue exitosa
     return res.status(200).json({ 
