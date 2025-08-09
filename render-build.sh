@@ -10,6 +10,13 @@ if [ -f "src/app/configuracion/page.tsx" ]; then
   rm -f "src/app/configuracion/page.tsx"
 fi
 
+# Eliminar archivos temporales que pueden causar errores de compilación
+echo "=== Eliminando archivos temporales ==="
+if [ -f "prueba-sri-fixed.tsx" ]; then
+  echo "Eliminando archivo temporal: prueba-sri-fixed.tsx"
+  rm -f "prueba-sri-fixed.tsx"
+fi
+
 # Mostrar información del entorno
 echo "=== Información del entorno ==="
 echo "Node version: $(node -v)"
