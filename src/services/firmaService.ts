@@ -1,6 +1,9 @@
 import { SignedXml } from 'xml-crypto';
 import * as forge from 'node-forge';
 
+// Declaración de tipos para evitar errores de compilación
+declare const Buffer: any;
+
 /**
  * Firma un documento XML utilizando un certificado digital
  * @param xml Documento XML a firmar
@@ -17,36 +20,27 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     const p12Asn1 = forge.asn1.fromDer(forge.util.createBuffer(certificadoBinary));
     const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, clave);
     
-    // Extraer la clave privada y el certificado
-    let privateKey: forge.pki.PrivateKey | null = null;
-    let cert: forge.pki.Certificate | null = null;
+    // Extraer clave privada y certificado
+    const bags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+    const keyBag = bags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
     
-    // Buscar la clave privada y el certificado
-    try {
-      const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-      const pkcs8Bags = keyBags ? keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] : undefined;
-      if (pkcs8Bags && Array.isArray(pkcs8Bags) && pkcs8Bags.length > 0 && pkcs8Bags[0] && pkcs8Bags[0].key) {
-        privateKey = pkcs8Bags[0].key;
-      }
-      
-      const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-      const certBagsArray = certBags ? certBags[forge.pki.oids.certBag] : undefined;
-      if (certBagsArray && Array.isArray(certBagsArray) && certBagsArray.length > 0 && certBagsArray[0] && certBagsArray[0].cert) {
-        cert = certBagsArray[0].cert;
-      }
-    } catch (error: any) {
-      throw new Error(`Error al procesar el certificado: ${error?.message || 'Error desconocido'}`);
+    if (!keyBag) {
+      throw new Error('No se pudo extraer la clave privada del certificado');
     }
     
-    if (!privateKey || !cert) {
-      throw new Error('No se pudo extraer la clave privada o el certificado');
-    }
+    const privateKey = keyBag.key;
+    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+    const certBag = certBags[forge.pki.oids.certBag]?.[0];
     
     // Convertir la clave privada a formato PEM
     const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
     
+    if (!certBag) {
+      throw new Error('No se pudo extraer el certificado');
+    }
+    
     // Convertir el certificado a formato PEM
-    const certPem = forge.pki.certificateToPem(cert);
+    const certPem = forge.pki.certificateToPem(certBag.cert);
     
     // Crear un proveedor de información de clave para xml-crypto
     const keyInfoProvider = {
@@ -62,13 +56,26 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
       }
     };
     
-    // Buscar el nodo a firmar (comprobante)
-    const startTag = '<comprobante>';
-    const endTag = '</comprobante>';
-    const startPos = xml.indexOf(startTag);
-    const endPos = xml.indexOf(endTag) + endTag.length;
+    // Buscar el nodo a firmar (factura con id="comprobante")
+    // Intentar diferentes formatos de búsqueda para mayor compatibilidad
+    let startPos = xml.indexOf('<factura id="comprobante"');
+    
+    // Si no lo encuentra, intentar con comillas simples
+    if (startPos === -1) {
+      startPos = xml.indexOf('<factura id=\'comprobante\'');
+    }
+    
+    // Si aún no lo encuentra, buscar cualquier nodo factura
+    if (startPos === -1) {
+      startPos = xml.indexOf('<factura');
+      console.log('Usando búsqueda genérica de nodo factura');
+    }
+    
+    const endPos = xml.lastIndexOf('</factura>') + '</factura>'.length;
     
     if (startPos === -1 || endPos === -1) {
+      // Imprimir los primeros 200 caracteres del XML para diagnóstico
+      console.error('Primeros 200 caracteres del XML:', xml.substring(0, 200));
       throw new Error('No se encontró el nodo comprobante en el XML');
     }
     
