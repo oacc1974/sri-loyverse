@@ -1,16 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Configuracion } from '../models/configuracion';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Configuracion, Factura } from '../types';
 
-// Definir la interfaz para la factura
-interface Factura {
-  facturaId: string;
-  loyverseId: string;
-  estado: string;
-  // Añadir otros campos según sea necesario
-}
-
-export default function PruebaSRI() {
+const PruebaSRI: React.FC = () => {
   const [configuracion, setConfiguracion] = useState<Configuracion | null>(null);
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [selectedFactura, setSelectedFactura] = useState<string>('');
@@ -54,74 +46,56 @@ export default function PruebaSRI() {
     const cargarConfiguracion = async () => {
       try {
         const response = await axios.get('/api/configuracion');
-        if (response.data.success && response.data.data.length > 0) {
-          setConfiguracion(response.data.data[0]);
-        } else {
-          // Si no hay configuración, crear una configuración por defecto para editar
-          setConfiguracion({
-            loyverseToken: '',
-            ruc: '9999999999999',
-            razonSocial: 'EMPRESA DE PRUEBA',
-            nombreComercial: 'EMPRESA DE PRUEBA',
-            direccion: 'DIRECCIÓN DE PRUEBA',
-            telefono: '',
-            email: 'prueba@ejemplo.com',
-            impuestoIVA: '12',
-            ambiente: 'pruebas',
-            automatizacion: false,
-            intervaloMinutos: '15',
-            certificadoBase64: '',
-            claveCertificado: ''
-          });
+        if (response.data && response.data.length > 0) {
+          // Usar la configuración más reciente
+          setConfiguracion(response.data[0]);
         }
       } catch (error) {
         console.error('Error al cargar configuración:', error);
-        setError('Error al cargar configuración. Se creará una nueva.');
-        // Si hay error, crear una configuración por defecto
-        setConfiguracion({
-          loyverseToken: '',
-          ruc: '9999999999999',
-          razonSocial: 'EMPRESA DE PRUEBA',
-          nombreComercial: 'EMPRESA DE PRUEBA',
-          direccion: 'DIRECCIÓN DE PRUEBA',
-          telefono: '',
-          email: 'prueba@ejemplo.com',
-          impuestoIVA: '12',
-          ambiente: 'pruebas',
-          automatizacion: false,
-          intervaloMinutos: '15',
-          certificadoBase64: '',
-          claveCertificado: ''
-        });
       }
     };
 
     cargarConfiguracion();
   }, []);
-  
-  // Guardar configuración en la base de datos
+
+  // Cargar facturas al iniciar
+  useEffect(() => {
+    const cargarFacturas = async () => {
+      try {
+        const response = await axios.get('/api/factura');
+        if (response.data && response.data.length > 0) {
+          setFacturas(response.data);
+        }
+      } catch (error) {
+        console.error('Error al cargar facturas:', error);
+      }
+    };
+
+    cargarFacturas();
+  }, []);
+
+  // Guardar configuración
   const guardarConfiguracion = async () => {
-    if (!configuracion) {
-      setError('No hay configuración para guardar');
-      return;
-    }
-    
-    if (!configuracion.certificadoBase64 || !configuracion.claveCertificado) {
-      setError('Debes cargar un certificado y proporcionar la clave');
-      return;
-    }
-    
+    if (!configuracion) return;
+
     setLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
-      const response = await axios.post('/api/configuracion', configuracion);
+      let response;
       
-      if (response.data.success) {
-        setSuccess('Configuración guardada exitosamente');
+      if (configuracion._id) {
+        // Actualizar configuración existente
+        response = await axios.put(`/api/configuracion/${configuracion._id}`, configuracion);
       } else {
-        setError('Error al guardar configuración: ' + response.data.message);
+        // Crear nueva configuración
+        response = await axios.post('/api/configuracion', configuracion);
+      }
+      
+      if (response.data) {
+        setConfiguracion(response.data);
+        setSuccess('Configuración guardada correctamente');
       }
     } catch (error: any) {
       setError(`Error al guardar configuración: ${error.response?.data?.message || error.message}`);
@@ -130,32 +104,22 @@ export default function PruebaSRI() {
     }
   };
 
-  // Cargar facturas de Loyverse
-  const cargarFacturasLoyverse = async () => {
-    if (!configuracion?.loyverseToken) {
-      setError('No hay token de Loyverse configurado');
-      return;
-    }
-
+  // Importar facturas desde Loyverse
+  const importarFacturas = async () => {
     setLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
-      const response = await axios.get('/api/loyverse/receipts', {
-        headers: {
-          Authorization: `Bearer ${configuracion.loyverseToken}`
-        }
-      });
-      
-      if (response.data.success) {
-        setFacturas(response.data.facturas || []);
-        setSuccess(`Se cargaron ${response.data.facturas?.length || 0} facturas de Loyverse`);
+      const response = await axios.get('/api/loyverse/receipts');
+      if (response.data && response.data.length > 0) {
+        setFacturas(response.data);
+        setSuccess(`Se importaron ${response.data.length} facturas desde Loyverse`);
       } else {
-        setError('Error al cargar facturas: ' + response.data.message);
+        setSuccess('No se encontraron nuevas facturas para importar');
       }
     } catch (error: any) {
-      setError(`Error al cargar facturas: ${error.response?.data?.message || error.message}`);
+      setError(`Error al importar facturas: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -164,19 +128,18 @@ export default function PruebaSRI() {
   // Procesar factura seleccionada
   const procesarFactura = async () => {
     if (!selectedFactura) {
-      setError('Selecciona una factura para procesar');
+      setError('Debe seleccionar una factura');
       return;
     }
 
-    if (!configuracion?.certificadoBase64 || !configuracion?.claveCertificado) {
-      setError('No hay certificado o clave configurados');
+    if (!configuracion) {
+      setError('Debe configurar los parámetros SRI primero');
       return;
     }
 
     setLoading(true);
     setError('');
     setSuccess('');
-    setResultado(null);
     
     try {
       // Encontrar la factura seleccionada
@@ -338,101 +301,91 @@ export default function PruebaSRI() {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
           </div>
-
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="loyverseToken">
-              Token de Loyverse
-            </label>
-            <input
-              type="text"
-              id="loyverseToken"
-              name="loyverseToken"
-              value={configuracion?.loyverseToken || ''}
-              onChange={handleConfigChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
-          </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
           <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="button"
             onClick={guardarConfiguracion}
             disabled={loading}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
-            Guardar Configuración
+            {loading ? 'Guardando...' : 'Guardar Configuración'}
           </button>
         </div>
       </div>
 
-      {/* Estado de la configuración */}
-      <div className="bg-gray-100 p-4 rounded-lg mb-6">
-        <h2 className="text-xl font-bold mb-2">Configuración Actual</h2>
-        {configuracion ? (
-          <div>
-            <p><strong>RUC:</strong> {configuracion.ruc}</p>
-            <p><strong>Razón Social:</strong> {configuracion.razonSocial}</p>
-            <p><strong>Ambiente:</strong> {configuracion.ambiente}</p>
-            <p><strong>Certificado:</strong> {configuracion.certificadoBase64 ? 'Configurado' : 'No configurado'}</p>
-          </div>
-        ) : (
-          <p className="text-red-500">No hay configuración disponible. Por favor, configura los parámetros primero.</p>
-        )}
-      </div>
+      {/* Sección de Facturas */}
+      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <h2 className="text-xl font-bold mb-4">Facturas</h2>
 
-      {/* Mensajes de error/éxito */}
-      {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
-      {success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{success}</div>}
-
-      {/* Cargar facturas */}
-      <div className="mb-6">
-        <button 
-          onClick={cargarFacturasLoyverse}
-          disabled={loading || !configuracion?.loyverseToken}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-        >
-          {loading ? 'Cargando...' : 'Cargar Facturas de Loyverse'}
-        </button>
-      </div>
-
-      {/* Lista de facturas */}
-      {facturas.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Facturas Disponibles</h2>
-          <select 
-            value={selectedFactura} 
-            onChange={(e) => setSelectedFactura(e.target.value)}
-            className="block w-full p-2 border border-gray-300 rounded"
+        <div className="flex items-center justify-between mb-4">
+          <button
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="button"
+            onClick={importarFacturas}
+            disabled={loading}
           >
-            <option value="">Selecciona una factura</option>
+            {loading ? 'Importando...' : 'Importar desde Loyverse'}
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="factura">
+            Seleccionar Factura
+          </label>
+          <select
+            id="factura"
+            name="factura"
+            value={selectedFactura}
+            onChange={(e) => setSelectedFactura(e.target.value)}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          >
+            <option value="">Seleccione una factura</option>
             {facturas.map((factura) => (
               <option key={factura.facturaId} value={factura.facturaId}>
-                {factura.loyverseId} - {factura.estado}
+                {factura.facturaId} - {factura.cliente?.nombre || 'Cliente Final'}
               </option>
             ))}
           </select>
-          
-          <button 
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="button"
             onClick={procesarFactura}
             disabled={loading || !selectedFactura}
-            className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
           >
-            {loading ? 'Procesando...' : 'Procesar Factura Seleccionada'}
+            {loading ? 'Procesando...' : 'Procesar Factura'}
           </button>
+        </div>
+      </div>
+
+      {/* Mensajes de error y éxito */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <p>{error}</p>
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          <p>{success}</p>
         </div>
       )}
 
-      {/* Resultado del procesamiento */}
+      {/* Resultados */}
       {resultado && (
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Resultado del Procesamiento</h2>
-          <div className="overflow-auto">
-            <pre className="bg-gray-800 text-white p-4 rounded">
-              {JSON.stringify(resultado, null, 2)}
-            </pre>
-          </div>
+        <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <h2 className="text-xl font-bold mb-4">Resultado del Procesamiento</h2>
+          <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
+            {JSON.stringify(resultado, null, 2)}
+          </pre>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default PruebaSRI;
