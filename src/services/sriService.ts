@@ -1,5 +1,12 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Factura } from '../models/factura';
+
+// Extender la interfaz Factura para incluir _id para MongoDB
+declare module '../models/factura' {
+  interface Factura {
+    _id?: string;
+  }
+}
 
 interface SRIResponse {
   estado: string;
@@ -62,8 +69,12 @@ export class SRIService {
    */
   async enviarComprobante(xmlFirmado: string): Promise<SRIResponse> {
     try {
+      console.log(`[SRI-DEBUG] Iniciando envío de comprobante al SRI - Ambiente: ${this.ambiente}`);
+      console.log(`[SRI-DEBUG] URL de recepción: ${this.recepcionUrl}`);
+      
       // Convertir XML a base64
       const xmlBase64 = Buffer.from(xmlFirmado).toString('base64');
+      console.log(`[SRI-DEBUG] XML convertido a base64 (primeros 100 caracteres): ${xmlBase64.substring(0, 100)}...`);
       
       // Crear el envelope SOAP
       const soapEnvelope = `
@@ -77,13 +88,20 @@ export class SRIService {
         </soapenv:Envelope>
       `;
       
-      // Enviar la petición SOAP
-      const response = await axios.post(this.recepcionUrl, soapEnvelope, {
+      console.log(`[SRI-DEBUG] Enviando petición SOAP al SRI - Timestamp: ${new Date().toISOString()}`);
+      
+      // Configurar timeout más largo para evitar ECONNRESET
+      const axiosConfig = {
         headers: {
           'Content-Type': 'text/xml;charset=UTF-8',
           'SOAPAction': ''
-        }
-      });
+        },
+        timeout: 30000 // 30 segundos de timeout
+      };
+      
+      // Enviar la petición SOAP
+      console.log(`[SRI-DEBUG] Configuración de la petición:`, axiosConfig);
+      const response = await axios.post(this.recepcionUrl, soapEnvelope, axiosConfig);
       
       // Procesar la respuesta
       const responseData = response.data;
@@ -121,8 +139,41 @@ export class SRIService {
       
       return sriResponse;
     } catch (error) {
-      console.error('Error al enviar comprobante al SRI:', error);
-      throw new Error('Error al enviar comprobante al SRI');
+      const axiosError = error as AxiosError;
+      console.error('[SRI-ERROR] Error al enviar comprobante al SRI:', axiosError);
+      
+      // Logs detallados del error para diagnóstico
+      if (axiosError.response) {
+        // La solicitud fue realizada y el servidor respondió con un código de estado
+        // que cae fuera del rango 2xx
+        console.error('[SRI-ERROR] Datos de respuesta de error:', axiosError.response.data);
+        console.error('[SRI-ERROR] Código de estado:', axiosError.response.status);
+        console.error('[SRI-ERROR] Cabeceras de respuesta:', axiosError.response.headers);
+      } else if (axiosError.request) {
+        // La solicitud fue realizada pero no se recibió respuesta
+        console.error('[SRI-ERROR] Solicitud sin respuesta:', axiosError.request);
+        
+        // Información adicional para errores de conexión
+        if (axiosError.code === 'ECONNRESET') {
+          console.error('[SRI-ERROR] Conexión reiniciada (ECONNRESET). Posibles causas:');
+          console.error('  - Timeout en la conexión');
+          console.error('  - Servidor SRI caído o en mantenimiento');
+          console.error('  - Problemas de red entre Render y SRI');
+          console.error('  - Firewall o restricciones de red');
+        } else if (axiosError.code === 'ETIMEDOUT') {
+          console.error('[SRI-ERROR] Timeout en la conexión (ETIMEDOUT)');
+        } else if (axiosError.code === 'ENOTFOUND') {
+          console.error('[SRI-ERROR] Host no encontrado (ENOTFOUND)');
+        }
+      } else {
+        // Algo sucedió al configurar la solicitud que desencadenó un error
+        console.error('[SRI-ERROR] Error de configuración:', axiosError.message);
+      }
+      
+      // Incluir stack trace para depuración
+      console.error('[SRI-ERROR] Stack trace:', axiosError.stack);
+      
+      throw new Error(`Error al enviar comprobante al SRI: ${axiosError.message || 'Error desconocido'}`);
     }
   }
 
@@ -133,6 +184,9 @@ export class SRIService {
    */
   async consultarAutorizacion(claveAcceso: string): Promise<SRIResponse> {
     try {
+      console.log(`[SRI-DEBUG] Iniciando consulta de autorización - Clave de acceso: ${claveAcceso}`);
+      console.log(`[SRI-DEBUG] URL de autorización: ${this.autorizacionUrl}`);
+      
       // Crear el envelope SOAP
       const soapEnvelope = `
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ec="http://ec.gob.sri.ws.autorizacion">
@@ -145,13 +199,19 @@ export class SRIService {
         </soapenv:Envelope>
       `;
       
-      // Enviar la petición SOAP
-      const response = await axios.post(this.autorizacionUrl, soapEnvelope, {
+      console.log(`[SRI-DEBUG] Enviando petición de autorización - Timestamp: ${new Date().toISOString()}`);
+      
+      // Configurar timeout más largo para evitar ECONNRESET
+      const axiosConfig = {
         headers: {
           'Content-Type': 'text/xml;charset=UTF-8',
           'SOAPAction': ''
-        }
-      });
+        },
+        timeout: 30000 // 30 segundos de timeout
+      };
+      
+      // Enviar la petición SOAP
+      const response = await axios.post(this.autorizacionUrl, soapEnvelope, axiosConfig);
       
       // Procesar la respuesta
       const responseData = response.data;
@@ -204,8 +264,28 @@ export class SRIService {
       
       return sriResponse;
     } catch (error) {
-      console.error('Error al consultar autorización en el SRI:', error);
-      throw new Error('Error al consultar autorización en el SRI');
+      const axiosError = error as AxiosError;
+      console.error('[SRI-ERROR] Error al consultar autorización en el SRI:', axiosError);
+      
+      // Logs detallados del error para diagnóstico
+      if (axiosError.response) {
+        console.error('[SRI-ERROR] Datos de respuesta de error:', axiosError.response.data);
+        console.error('[SRI-ERROR] Código de estado:', axiosError.response.status);
+      } else if (axiosError.request) {
+        console.error('[SRI-ERROR] Solicitud sin respuesta:', axiosError.request);
+        
+        // Información adicional para errores de conexión
+        if (axiosError.code === 'ECONNRESET') {
+          console.error('[SRI-ERROR] Conexión reiniciada (ECONNRESET) durante consulta de autorización');
+        }
+      } else {
+        console.error('[SRI-ERROR] Error de configuración en consulta de autorización:', axiosError.message);
+      }
+      
+      // Incluir stack trace para depuración
+      console.error('[SRI-ERROR] Stack trace:', axiosError.stack);
+      
+      throw new Error(`Error al consultar autorización en el SRI: ${axiosError.message || 'Error desconocido'}`);
     }
   }
 
@@ -217,8 +297,11 @@ export class SRIService {
    */
   async procesarFactura(factura: Factura, xmlFirmado: string): Promise<Factura> {
     try {
+      console.log(`[SRI-DEBUG] Iniciando procesamiento de factura - ID: ${factura._id}, Clave de acceso: ${factura.claveAcceso || 'No disponible'}`);
+      console.log(`[SRI-DEBUG] Enviando comprobante al SRI - Timestamp: ${new Date().toISOString()}`);
       // Enviar comprobante al SRI
       const recepcionResponse = await this.enviarComprobante(xmlFirmado);
+      console.log(`[SRI-DEBUG] Respuesta de recepción recibida - Estado: ${recepcionResponse.estado}`);
       
       // Si la recepción fue exitosa, consultar autorización
       if (recepcionResponse.estado === 'RECIBIDA') {
@@ -263,11 +346,25 @@ export class SRIService {
       
       return factura;
     } catch (error) {
-      console.error('Error al procesar factura en el SRI:', error);
+      const err = error as Error;
+      console.error('[SRI-ERROR] Error al procesar factura en el SRI:', err);
+      
+      // Logs detallados para diagnóstico
+      console.error(`[SRI-ERROR] Detalles de la factura con error - ID: ${factura._id || factura.id}, Clave: ${factura.claveAcceso || 'No disponible'}`);
+      
+      if (err.message && err.message.includes('ECONNRESET')) {
+        console.error('[SRI-ERROR] Detectado error ECONNRESET durante el procesamiento de la factura');
+        console.error('[SRI-ERROR] Recomendación: Verificar estado del servicio SRI y reintentar más tarde');
+        console.error('[SRI-ERROR] Posibles causas:');
+        console.error('  - Timeout en la conexión (el servicio SRI tarda demasiado en responder)');
+        console.error('  - Servidor SRI caído o en mantenimiento');
+        console.error('  - Problemas de red entre Render y SRI');
+        console.error('  - Firewall o restricciones de red');
+      }
       
       // Actualizar estado de la factura
       factura.estado = 'Rechazada';
-      factura.mensajeError = `Error de comunicación con el SRI: ${(error as Error).message}`;
+      factura.mensajeError = `Error de comunicación con el SRI: ${err.message}`;
       
       return factura;
     }
