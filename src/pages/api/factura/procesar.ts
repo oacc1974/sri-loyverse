@@ -225,19 +225,21 @@ async function autorizarDocumento(res: NextApiResponse, factura: any, configurac
 // Proceso completo: firmar, enviar y autorizar
 async function procesoCompleto(res: NextApiResponse, factura: any, configuracion: any) {
   try {
-    // 1. Firmar
-    if (!factura.xmlFirmado) {
-      const xmlSinFirma = await generarXML(factura);
-      // Guardar el XML sin firmar para referencia (útil para diagnóstico)
-      factura.xmlSinFirma = xmlSinFirma;
-      factura.xmlFirmado = await firmarXML(
-        xmlSinFirma, 
-        configuracion.certificadoBase64, 
-        configuracion.claveCertificado
-      );
-      factura.estado = 'FIRMADO';
-      await factura.save();
-    }
+    // 1. Firmar - Siempre regenerar el XML para aplicar las últimas correcciones
+    // Regeneramos el XML sin importar si ya existe uno firmado para asegurar que se apliquen todas las correcciones
+    console.log(`[PROCESO-DEBUG] Regenerando XML para factura ${factura._id} (reprocesamiento)`); 
+    const xmlSinFirma = await generarXML(factura);
+    // Guardar el XML sin firmar para referencia (útil para diagnóstico)
+    factura.xmlSinFirma = xmlSinFirma;
+    factura.xmlFirmado = await firmarXML(
+      xmlSinFirma, 
+      configuracion.certificadoBase64, 
+      configuracion.claveCertificado
+    );
+    factura.estado = 'FIRMADO';
+    await factura.save();
+    console.log(`[PROCESO-DEBUG] XML regenerado y firmado correctamente para factura ${factura._id}`);
+    
     
     // 2. Enviar
     const respuestaSRI = await enviarSRI(factura.xmlFirmado);
