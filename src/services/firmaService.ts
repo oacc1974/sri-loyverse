@@ -89,7 +89,7 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     // Crear el firmador XML
     const sig = new SignedXml();
     sig.addReference(
-      "//*[local-name(.)='comprobante']",
+      "//*[local-name(.)='factura']",
       [
         'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
         'http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
