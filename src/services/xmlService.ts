@@ -68,8 +68,17 @@ export class XMLService {
             // Asegurar que el codigoPrincipal cumpla con los requisitos del SRI:
             // - Solo letras y números (sin guiones ni caracteres especiales)
             // - Máximo 25 caracteres
-            codigoPrincipal: detalle.codigo ? 
-              detalle.codigo.replace(/[^a-zA-Z0-9]/g, '').substring(0, 25) || 'PRODUCTO' : 'PRODUCTO',
+            // - Nunca vacío (usa 'PRODUCTO' como fallback)
+            codigoPrincipal: (() => {
+              // Si no hay código, usar valor por defecto
+              if (!detalle.codigo) return 'PRODUCTO';
+              
+              // Eliminar caracteres no permitidos y limitar longitud
+              const codigoLimpio = detalle.codigo.replace(/[^a-zA-Z0-9]/g, '');
+              
+              // Si después de limpiar queda vacío, usar valor por defecto
+              return codigoLimpio ? codigoLimpio.substring(0, 25) : 'PRODUCTO';
+            })(),
             descripcion: detalle.descripcion,
             cantidad: detalle.cantidad.toFixed(2),
             precioUnitario: detalle.precioUnitario.toFixed(2),
