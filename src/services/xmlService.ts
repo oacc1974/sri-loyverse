@@ -200,10 +200,10 @@ export class XMLService {
     }
     
     // Calcular dígito verificador (algoritmo módulo 11)
-    const digitoVerificador = this.calcularDigitoModulo11(claveBase);
+    const digitoVerificador = this.calcularDigitoModulo11(claveBaseCorregida);
     
     // Retornar clave completa
-    const claveCompleta = `${claveBase}${digitoVerificador}`;
+    const claveCompleta = `${claveBaseCorregida}${digitoVerificador}`;
     console.log(`[XML-DEBUG] Clave de acceso generada: ${claveCompleta}`);
     
     return claveCompleta;
@@ -215,16 +215,44 @@ export class XMLService {
    * @returns Dígito verificador
    */
   calcularDigitoModulo11(claveBase: string): string {
-    const factores = [2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5];
+    console.log(`[XML-DEBUG] Calculando dígito verificador para clave base: ${claveBase}`);
+    
+    // Verificar que la clave base solo contenga dígitos
+    const claveBaseNumeros = claveBase.replace(/\D/g, '');
+    if (claveBaseNumeros !== claveBase) {
+      console.error('[XML-ERROR] La clave base contiene caracteres no numéricos:', claveBase);
+      console.log('[XML-DEBUG] Usando solo los dígitos de la clave base:', claveBaseNumeros);
+    }
+    
+    // Asegurar que tengamos suficientes factores para la longitud de la clave
+    const factores = [];
+    for (let i = 0; i < claveBaseNumeros.length; i++) {
+      // Patrón de factores: 2,3,4,5,6,7,2,3,4,5,6,7,...
+      factores.push(2 + (i % 6));
+    }
+    
+    console.log(`[XML-DEBUG] Factores para cálculo: ${factores.join(',')}`); 
     
     let suma = 0;
-    for (let i = 0; i < claveBase.length; i++) {
-      suma += parseInt(claveBase.charAt(i)) * factores[i];
+    for (let i = 0; i < claveBaseNumeros.length; i++) {
+      const digito = parseInt(claveBaseNumeros.charAt(i));
+      if (isNaN(digito)) {
+        console.error(`[XML-ERROR] Caracter no numérico en posición ${i}: ${claveBaseNumeros.charAt(i)}`);
+        continue; // Saltar caracteres no numéricos
+      }
+      const factor = factores[i];
+      const producto = digito * factor;
+      suma += producto;
+      console.log(`[XML-DEBUG] Posición ${i}: ${digito} * ${factor} = ${producto}`); 
     }
+    
+    console.log(`[XML-DEBUG] Suma total: ${suma}`);
     
     const modulo = 11;
     const residuo = suma % modulo;
     const resultado = residuo === 0 ? 0 : modulo - residuo;
+    
+    console.log(`[XML-DEBUG] Residuo: ${residuo}, Dígito verificador: ${resultado}`);
     
     return resultado.toString();
   }
