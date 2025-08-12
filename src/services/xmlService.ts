@@ -186,7 +186,7 @@ export class XMLService {
     console.log(`  - Tipo de emisión: ${tipoEmision}`);
     console.log(`  - Clave base: ${claveBase}`);
     
-    // Verificar que la clave base tenga la longitud correcta (48 caracteres)
+    // Verificar que la clave base tenga la longitud correcta (debe ser 48 caracteres para que con el dígito verificador sean 49)
     let claveBaseCorregida = claveBase;
     if (claveBase.length !== 48) {
       console.error('[XML-ERROR] La clave base no tiene la longitud correcta:', claveBase.length);
@@ -203,12 +203,38 @@ export class XMLService {
       console.log(`  - Clave base corregida: ${claveBaseCorregida}`);
     }
     
+    // Verificar que la clave base solo contenga dígitos
+    const claveBaseNumerica = claveBaseCorregida.replace(/\D/g, '');
+    if (claveBaseNumerica !== claveBaseCorregida) {
+      console.error('[XML-ERROR] La clave base contiene caracteres no numéricos:', claveBaseCorregida);
+      console.log('[XML-DEBUG] Usando solo los dígitos de la clave base');
+      claveBaseCorregida = claveBaseNumerica.padEnd(48, '0');
+      console.log(`  - Clave base numérica corregida: ${claveBaseCorregida}`);
+    }
+    
     // Calcular dígito verificador (algoritmo módulo 11)
     const digitoVerificador = this.calcularDigitoModulo11(claveBaseCorregida);
     
-    // Retornar clave completa
+    // Retornar clave completa (debe tener exactamente 49 caracteres)
     const claveCompleta = `${claveBaseCorregida}${digitoVerificador}`;
-    console.log(`[XML-DEBUG] Clave de acceso generada: ${claveCompleta}`);
+    console.log(`[XML-DEBUG] Clave de acceso generada: ${claveCompleta} (longitud: ${claveCompleta.length})`);
+    
+    // Verificar que la clave completa tenga exactamente 49 caracteres numéricos
+    if (claveCompleta.length !== 49) {
+      console.error(`[XML-ERROR] La clave de acceso no tiene 49 caracteres: ${claveCompleta.length}`);
+      // Corregir la longitud
+      const claveCorregida = claveCompleta.replace(/\D/g, '').substring(0, 49).padEnd(49, '0');
+      console.log(`[XML-DEBUG] Clave de acceso corregida: ${claveCorregida}`);
+      return claveCorregida;
+    }
+    
+    // Verificar que solo contenga dígitos
+    if (!/^\d{49}$/.test(claveCompleta)) {
+      console.error('[XML-ERROR] La clave de acceso contiene caracteres no numéricos');
+      const claveCorregida = claveCompleta.replace(/\D/g, '').padEnd(49, '0').substring(0, 49);
+      console.log(`[XML-DEBUG] Clave de acceso corregida: ${claveCorregida}`);
+      return claveCorregida;
+    }
     
     return claveCompleta;
   }
