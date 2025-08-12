@@ -65,7 +65,8 @@ export class XMLService {
         },
         detalles: {
           detalle: factura.detalles.map(detalle => ({
-            codigoPrincipal: detalle.codigo,
+            // Asegurar que el codigoPrincipal no exceda los 25 caracteres requeridos por el SRI
+            codigoPrincipal: detalle.codigo ? detalle.codigo.substring(0, 25) : 'PRODUCTO',
             descripcion: detalle.descripcion,
             cantidad: detalle.cantidad.toFixed(2),
             precioUnitario: detalle.precioUnitario.toFixed(2),
