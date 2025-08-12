@@ -29,15 +29,19 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     }
     
     const privateKey = keyBag.key;
+    if (!privateKey) {
+      throw new Error('La clave privada extraída es inválida o está vacía');
+    }
+    
     const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
     const certBag = certBags[forge.pki.oids.certBag]?.[0];
-    
-    // Convertir la clave privada a formato PEM
-    const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
     
     if (!certBag) {
       throw new Error('No se pudo extraer el certificado');
     }
+    
+    // Convertir la clave privada a formato PEM
+    const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
     
     // Convertir el certificado a formato PEM
     const certPem = forge.pki.certificateToPem(certBag.cert);
