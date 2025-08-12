@@ -43,7 +43,7 @@ async function getConfiguraciones(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-// POST - Crear una nueva configuración
+// POST - Crear o actualizar configuración
 async function crearConfiguracion(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Validar datos requeridos
@@ -60,18 +60,36 @@ async function crearConfiguracion(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // Crear nueva configuración
-    const configuracion = await ConfiguracionModel.create(req.body);
+    // Buscar si ya existe una configuración para este ambiente
+    let configuracion = await ConfiguracionModel.findOne({ ambiente });
     
-    return res.status(201).json({ 
-      success: true, 
-      message: 'Configuración creada exitosamente',
-      data: configuracion 
-    });
+    if (configuracion) {
+      // Actualizar la configuración existente
+      configuracion = await ConfiguracionModel.findByIdAndUpdate(
+        configuracion._id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Configuración actualizada exitosamente',
+        data: configuracion 
+      });
+    } else {
+      // Crear nueva configuración
+      configuracion = await ConfiguracionModel.create(req.body);
+      
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Configuración creada exitosamente',
+        data: configuracion 
+      });
+    }
   } catch (error: any) {
     return res.status(500).json({ 
       success: false, 
-      message: `Error al crear configuración: ${error.message}` 
+      message: `Error al crear/actualizar configuración: ${error.message}` 
     });
   }
 }
