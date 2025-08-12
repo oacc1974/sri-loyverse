@@ -42,7 +42,9 @@ export class XMLService {
         infoFactura: {
           fechaEmision: factura.fechaEmision,
           dirEstablecimiento: factura.dirEstablecimiento,
-          contribuyenteEspecial: factura.contribuyenteEspecial,
+          // El campo contribuyenteEspecial debe estar vacío o no incluirse si no aplica, o tener un código de al menos 3 caracteres
+          ...(factura.contribuyenteEspecial && factura.contribuyenteEspecial !== 'NO' ? 
+            { contribuyenteEspecial: factura.contribuyenteEspecial.length >= 3 ? factura.contribuyenteEspecial : '' } : {}),
           obligadoContabilidad: factura.obligadoContabilidad,
           tipoIdentificacionComprador: factura.tipoIdentificacionComprador,
           razonSocialComprador: factura.cliente.razonSocial,
