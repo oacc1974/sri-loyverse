@@ -7,6 +7,10 @@ interface Factura {
   facturaId: string;
   loyverseId: string;
   estado: string;
+  xmlFirmado?: string;
+  xmlSinFirma?: string;
+  respuestaSRI?: any;
+  mensajeError?: string;
   // Añadir otros campos según sea necesario
 }
 
@@ -18,6 +22,7 @@ export default function PruebaSRI() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resultado, setResultado] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'firmado' | 'sinFirma'>('firmado');
   
   // Manejar cambios en los campos de configuración
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -431,6 +436,84 @@ export default function PruebaSRI() {
               {JSON.stringify(resultado, null, 2)}
             </pre>
           </div>
+          
+          {/* Mostrar XML cuando la factura es rechazada */}
+          {resultado.data?.estado === 'RECHAZADA' && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2 text-red-600">XML Rechazado</h3>
+              <p className="mb-2 text-sm">Este es el XML que fue enviado al SRI y fue rechazado. Revise el formato y los datos para identificar el problema.</p>
+              
+              {/* Pestañas para alternar entre XML firmado y sin firmar */}
+              <div className="border-b border-gray-200 mb-4">
+                <nav className="-mb-px flex space-x-8">
+                  <button 
+                    onClick={() => setActiveTab('firmado')}
+                    className={`${activeTab === 'firmado' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    XML Firmado
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('sinFirma')}
+                    className={`${activeTab === 'sinFirma' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    XML Sin Firma
+                  </button>
+                </nav>
+              </div>
+              
+              {/* Mostrar XML según la pestaña activa */}
+              {activeTab === 'firmado' && resultado.data?.xmlFirmado && (
+                <div className="overflow-auto max-h-96">
+                  <pre className="bg-gray-800 text-white p-4 rounded">
+                    {resultado.data.xmlFirmado}
+                  </pre>
+                </div>
+              )}
+              
+              {activeTab === 'sinFirma' && resultado.data?.xmlSinFirma && (
+                <div className="overflow-auto max-h-96">
+                  <pre className="bg-gray-800 text-white p-4 rounded">
+                    {resultado.data.xmlSinFirma}
+                  </pre>
+                </div>
+              )}
+              
+              {/* Mostrar mensaje si no hay XML disponible para la pestaña seleccionada */}
+              {activeTab === 'firmado' && !resultado.data?.xmlFirmado && (
+                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                  No hay XML firmado disponible para esta factura.
+                </div>
+              )}
+              
+              {activeTab === 'sinFirma' && !resultado.data?.xmlSinFirma && (
+                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                  No hay XML sin firma disponible para esta factura.
+                </div>
+              )}
+              
+              {/* Mostrar mensajes de error del SRI */}
+              {resultado.data?.respuestaSRI?.mensajes && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-red-600">Mensajes del SRI:</h4>
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <pre className="whitespace-pre-wrap">
+                      {JSON.stringify(resultado.data.respuestaSRI.mensajes, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+              
+              {/* Mostrar mensaje de error general si existe */}
+              {resultado.data.mensajeError && (
+                <div className="mt-2">
+                  <h4 className="font-semibold text-red-600">Mensaje de Error:</h4>
+                  <p className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {resultado.data.mensajeError}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

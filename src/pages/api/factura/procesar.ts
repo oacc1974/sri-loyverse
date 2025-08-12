@@ -108,6 +108,9 @@ async function firmarDocumento(res: NextApiResponse, factura: any, configuracion
       // Generar XML a partir de los datos de la factura
       const xmlSinFirma = await generarXML(factura);
       
+      // Guardar el XML sin firmar para referencia (útil para diagnóstico)
+      factura.xmlSinFirma = xmlSinFirma;
+      
       // Firmar el XML
       const xmlFirmado = await firmarXML(
         xmlSinFirma, 
@@ -225,6 +228,8 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     // 1. Firmar
     if (!factura.xmlFirmado) {
       const xmlSinFirma = await generarXML(factura);
+      // Guardar el XML sin firmar para referencia (útil para diagnóstico)
+      factura.xmlSinFirma = xmlSinFirma;
       factura.xmlFirmado = await firmarXML(
         xmlSinFirma, 
         configuracion.certificadoBase64, 
@@ -248,15 +253,26 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     factura.estado = respuestaAutorizacion.estado || factura.estado;
     await factura.save();
     
+    // Preparar la respuesta con datos básicos
+    const responseData: any = {
+      facturaId: factura._id,
+      estado: factura.estado,
+      numeroAutorizacion: factura.numeroAutorizacion,
+      fechaAutorizacion: factura.fechaAutorizacion,
+      respuestaSRI: factura.respuestaSRI
+    };
+    
+    // Si la factura fue rechazada, incluir los XMLs para diagnóstico
+    if (factura.estado === 'RECHAZADA') {
+      responseData.xmlFirmado = factura.xmlFirmado;
+      responseData.xmlSinFirma = factura.xmlSinFirma;
+      responseData.mensajeError = factura.mensajeError || 'Factura rechazada por el SRI';
+    }
+    
     return res.status(200).json({ 
       success: true, 
       message: 'Proceso completo ejecutado exitosamente',
-      data: {
-        facturaId: factura._id,
-        estado: factura.estado,
-        numeroAutorizacion: factura.numeroAutorizacion,
-        fechaAutorizacion: factura.fechaAutorizacion
-      }
+      data: responseData
     });
   } catch (error: any) {
     console.error('Error en proceso completo:', error);

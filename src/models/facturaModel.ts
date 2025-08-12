@@ -72,6 +72,7 @@ const FacturaSchema = new Schema({
   estado: { type: String, default: 'PENDIENTE' }, // PENDIENTE, ENVIADO, AUTORIZADO, RECHAZADO
   numeroAutorizacion: { type: String },
   fechaAutorizacion: { type: String },
+  xmlSinFirma: { type: String },
   xmlFirmado: { type: String },
   respuestaSRI: { type: Object }
 }, {

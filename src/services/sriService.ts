@@ -53,12 +53,12 @@ export class SRIService {
     
     if (ambiente === '1') {
       // URLs de ambiente de pruebas
-      this.recepcionUrl = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl';
-      this.autorizacionUrl = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl';
+      this.recepcionUrl = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline';
+      this.autorizacionUrl = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline';
     } else {
       // URLs de ambiente de producción
-      this.recepcionUrl = 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl';
-      this.autorizacionUrl = 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl';
+      this.recepcionUrl = 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline';
+      this.autorizacionUrl = 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline';
     }
   }
 
@@ -96,7 +96,7 @@ export class SRIService {
           'Content-Type': 'text/xml;charset=UTF-8',
           'SOAPAction': ''
         },
-        timeout: 30000 // 30 segundos de timeout
+        timeout: 60000 // 60 segundos de timeout para dar más tiempo al SRI
       };
       
       // Enviar la petición SOAP
@@ -207,7 +207,7 @@ export class SRIService {
           'Content-Type': 'text/xml;charset=UTF-8',
           'SOAPAction': ''
         },
-        timeout: 30000 // 30 segundos de timeout
+        timeout: 60000 // 60 segundos de timeout para dar más tiempo al SRI
       };
       
       // Enviar la petición SOAP
