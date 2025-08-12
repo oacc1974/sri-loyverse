@@ -36,7 +36,7 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
     const certBag = certBags[forge.pki.oids.certBag]?.[0];
     
-    if (!certBag) {
+    if (!certBag || !certBag.cert) {
       throw new Error('No se pudo extraer el certificado');
     }
     
