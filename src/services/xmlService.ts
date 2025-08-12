@@ -114,21 +114,99 @@ export class XMLService {
     // Formato: fechaEmision(ddmmaaaa) + tipoComprobante(2) + ruc(13) + ambiente(1) + 
     // serie(6) + numeroComprobante(9) + codigoNumerico(8) + tipoEmision(1) + digito verificador(1)
     
-    // Extraer fecha en formato ddmmaaaa
-    const fechaParts = factura.fechaEmision.split('-');
-    const fechaFormato = `${fechaParts[2]}${fechaParts[1]}${fechaParts[0]}`;
+    console.log('[XML-DEBUG] Generando clave de acceso para factura:', JSON.stringify(factura, null, 2));
+    
+    // Validar y formatear fecha (soporta formatos dd/mm/yyyy y yyyy-mm-dd)
+    let fechaFormato = '';
+    if (factura.fechaEmision) {
+      if (factura.fechaEmision.includes('/')) {
+        // Formato dd/mm/yyyy
+        const fechaParts = factura.fechaEmision.split('/');
+        if (fechaParts.length === 3) {
+          fechaFormato = `${fechaParts[0]}${fechaParts[1]}${fechaParts[2]}`;
+        }
+      } else if (factura.fechaEmision.includes('-')) {
+        // Formato yyyy-mm-dd
+        const fechaParts = factura.fechaEmision.split('-');
+        if (fechaParts.length === 3) {
+          fechaFormato = `${fechaParts[2]}${fechaParts[1]}${fechaParts[0]}`;
+        }
+      }
+    }
+    
+    // Si no se pudo formatear la fecha, usar la fecha actual
+    if (!fechaFormato) {
+      const hoy = new Date();
+      const dia = hoy.getDate().toString().padStart(2, '0');
+      const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
+      const anio = hoy.getFullYear().toString();
+      fechaFormato = `${dia}${mes}${anio}`;
+      console.log('[XML-DEBUG] Usando fecha actual para clave de acceso:', fechaFormato);
+    }
+    
+    // Validar y asignar valores por defecto si es necesario
+    const codDoc = factura.codDoc || '01'; // 01 = Factura
+    const ruc = factura.ruc || ''; // No hay valor por defecto para RUC, debe estar definido
+    const ambiente = factura.ambiente || '1'; // 1 = Pruebas
+    const estab = factura.estab || '001'; // Establecimiento por defecto
+    const ptoEmi = factura.ptoEmi || '001'; // Punto de emisión por defecto
+    
+    // Asegurar que secuencial tenga 9 dígitos
+    let secuencial = '';
+    if (factura.secuencial) {
+      // Eliminar caracteres no numéricos
+      const secuencialNumerico = factura.secuencial.replace(/\D/g, '');
+      secuencial = secuencialNumerico.padStart(9, '0');
+    } else {
+      secuencial = '000000001'; // Secuencial por defecto
+    }
     
     // Código numérico aleatorio de 8 dígitos
     const codigoNumerico = Math.floor(10000000 + Math.random() * 90000000).toString();
     
+    // Tipo de emisión (1 = Normal)
+    const tipoEmision = factura.tipoEmision || '1';
+    
     // Construir clave sin dígito verificador
-    const claveBase = `${fechaFormato}${factura.codDoc}${factura.ruc}${factura.ambiente}${factura.estab}${factura.ptoEmi}${factura.secuencial}${codigoNumerico}${factura.tipoEmision}`;
+    const claveBase = `${fechaFormato}${codDoc}${ruc}${ambiente}${estab}${ptoEmi}${secuencial}${codigoNumerico}${tipoEmision}`;
+    
+    console.log('[XML-DEBUG] Componentes de la clave de acceso:');
+    console.log(`  - Fecha: ${fechaFormato}`);
+    console.log(`  - Tipo de comprobante: ${codDoc}`);
+    console.log(`  - RUC: ${ruc}`);
+    console.log(`  - Ambiente: ${ambiente}`);
+    console.log(`  - Establecimiento: ${estab}`);
+    console.log(`  - Punto de emisión: ${ptoEmi}`);
+    console.log(`  - Secuencial: ${secuencial}`);
+    console.log(`  - Código numérico: ${codigoNumerico}`);
+    console.log(`  - Tipo de emisión: ${tipoEmision}`);
+    console.log(`  - Clave base: ${claveBase}`);
+    
+    // Verificar que la clave base tenga la longitud correcta (48 caracteres)
+    let claveBaseCorregida = claveBase;
+    if (claveBase.length !== 48) {
+      console.error('[XML-ERROR] La clave base no tiene la longitud correcta:', claveBase.length);
+      // Intentar corregir la longitud
+      if (claveBase.length < 48) {
+        // Si es más corta, rellenar con ceros
+        console.log('[XML-DEBUG] Rellenando clave base con ceros');
+        claveBaseCorregida = claveBase.padEnd(48, '0');
+      } else {
+        // Si es más larga, truncar
+        console.log('[XML-DEBUG] Truncando clave base');
+        claveBaseCorregida = claveBase.substring(0, 48);
+      }
+      console.log(`  - Clave base corregida: ${claveBaseCorregida}`);
+    }
     
     // Calcular dígito verificador (algoritmo módulo 11)
     const digitoVerificador = this.calcularDigitoModulo11(claveBase);
     
     // Retornar clave completa
-    return `${claveBase}${digitoVerificador}`;
+    const claveCompleta = `${claveBase}${digitoVerificador}`;
+    console.log(`[XML-DEBUG] Clave de acceso generada: ${claveCompleta}`);
+    
+    return claveCompleta;
   }
 
   /**
