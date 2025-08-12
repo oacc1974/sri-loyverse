@@ -259,8 +259,8 @@ export class XMLService {
   }
 
   /**
-   * Calcula el dígito verificador usando el algoritmo módulo 11
-   * @param claveBase Clave base sin dígito verificador
+   * Calcula el dígito verificador usando el algoritmo módulo 11 según especificación del SRI
+   * @param claveBase Clave base sin dígito verificador (48 dígitos)
    * @returns Dígito verificador
    */
   calcularDigitoModulo11(claveBase: string): string {
@@ -273,37 +273,46 @@ export class XMLService {
       console.log('[XML-DEBUG] Usando solo los dígitos de la clave base:', claveBaseNumeros);
     }
     
-    // Asegurar que tengamos suficientes factores para la longitud de la clave
-    const factores = [];
-    for (let i = 0; i < claveBaseNumeros.length; i++) {
-      // Patrón de factores: 2,3,4,5,6,7,2,3,4,5,6,7,...
-      factores.push(2 + (i % 6));
-    }
-    
-    console.log(`[XML-DEBUG] Factores para cálculo: ${factores.join(',')}`); 
-    
+    // Algoritmo SRI: factores 2-7 de derecha a izquierda
+    const factores = [2, 3, 4, 5, 6, 7];
     let suma = 0;
-    for (let i = 0; i < claveBaseNumeros.length; i++) {
+    
+    // Recorrer la clave de derecha a izquierda (importante para el algoritmo SRI)
+    for (let i = claveBaseNumeros.length - 1; i >= 0; i--) {
       const digito = parseInt(claveBaseNumeros.charAt(i));
       if (isNaN(digito)) {
         console.error(`[XML-ERROR] Caracter no numérico en posición ${i}: ${claveBaseNumeros.charAt(i)}`);
         continue; // Saltar caracteres no numéricos
       }
-      const factor = factores[i];
+      
+      // Calcular posición para el factor (ciclo de 2 a 7)
+      const posicionFactor = (claveBaseNumeros.length - 1 - i) % 6;
+      const factor = factores[posicionFactor];
+      
       const producto = digito * factor;
       suma += producto;
-      console.log(`[XML-DEBUG] Posición ${i}: ${digito} * ${factor} = ${producto}`); 
+      console.log(`[XML-DEBUG] Posición ${i} (desde derecha ${claveBaseNumeros.length - 1 - i}): ${digito} * ${factor} = ${producto}`);
     }
     
     console.log(`[XML-DEBUG] Suma total: ${suma}`);
     
+    // Calcular residuo
     const modulo = 11;
     const residuo = suma % modulo;
-    const resultado = residuo === 0 ? 0 : modulo - residuo;
     
-    console.log(`[XML-DEBUG] Residuo: ${residuo}, Dígito verificador: ${resultado}`);
+    // Aplicar reglas específicas del SRI
+    let digitoVerificador;
+    if (residuo === 0) {
+      digitoVerificador = 0;
+    } else if (residuo === 1) {
+      digitoVerificador = 1;
+    } else {
+      digitoVerificador = modulo - residuo;
+    }
     
-    return resultado.toString();
+    console.log(`[XML-DEBUG] Residuo: ${residuo}, Dígito verificador: ${digitoVerificador}`);
+    
+    return digitoVerificador.toString();
   }
 
   /**
