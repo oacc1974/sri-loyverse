@@ -65,19 +65,26 @@ export class XMLService {
         },
         detalles: {
           detalle: factura.detalles.map(detalle => ({
-            // Asegurar que el codigoPrincipal cumpla con los requisitos del SRI:
-            // - Solo letras y números (sin guiones ni caracteres especiales)
-            // - Máximo 25 caracteres
-            // - Nunca vacío (usa 'PRODUCTO' como fallback)
+            // Generar código principal según formato: 4 primeras letras del nombre + número secuencial
             codigoPrincipal: (() => {
-              // Si no hay código, usar valor por defecto
-              if (!detalle.codigo) return 'PRODUCTO';
+              // Obtener las primeras 4 letras del nombre del producto (solo alfanuméricas)
+              let prefijo = '';
+              if (detalle.descripcion) {
+                // Eliminar caracteres no alfanuméricos y espacios
+                const descripcionLimpia = detalle.descripcion.replace(/[^a-zA-Z0-9]/g, '');
+                // Tomar las primeras 4 letras o rellenar con 'X' si es necesario
+                prefijo = descripcionLimpia.substring(0, 4).padEnd(4, 'X').toUpperCase();
+              } else {
+                // Si no hay descripción, usar un prefijo genérico
+                prefijo = 'PROD';
+              }
               
-              // Eliminar caracteres no permitidos y limitar longitud
-              const codigoLimpio = detalle.codigo.replace(/[^a-zA-Z0-9]/g, '');
+              // Obtener el índice del producto en la factura (base 0) y formatearlo como '01', '02', etc.
+              const indice = factura.detalles.indexOf(detalle);
+              const sufijo = (indice + 1).toString().padStart(2, '0');
               
-              // Si después de limpiar queda vacío, usar valor por defecto
-              return codigoLimpio ? codigoLimpio.substring(0, 25) : 'PRODUCTO';
+              // Combinar prefijo y sufijo
+              return prefijo + sufijo;
             })(),
             descripcion: detalle.descripcion,
             cantidad: detalle.cantidad.toFixed(2),
