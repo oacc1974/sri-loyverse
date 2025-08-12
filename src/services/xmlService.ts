@@ -35,7 +35,8 @@ export class XMLService {
           codDoc: factura.codDoc,
           estab: factura.estab,
           ptoEmi: factura.ptoEmi,
-          secuencial: factura.secuencial,
+          // Asegurar que el secuencial cumpla con el patrón [0-9]{9} requerido por el SRI
+          secuencial: factura.secuencial ? factura.secuencial.replace(/\D/g, '').padStart(9, '0').substring(0, 9) : '000000001',
           dirMatriz: factura.dirMatriz
         },
         infoFactura: {
