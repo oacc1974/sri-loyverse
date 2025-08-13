@@ -69,12 +69,18 @@ const FacturaSchema = new Schema({
   }],
   detalles: { type: [ProductoDetalleSchema], required: true },
   infoAdicional: { type: Map, of: String },
-  estado: { type: String, default: 'PENDIENTE' }, // PENDIENTE, ENVIADO, AUTORIZADO, RECHAZADO
+  estado: { type: String, default: 'PENDIENTE' }, // PENDIENTE, FIRMADO, ENVIADO, AUTORIZADO, RECHAZADO
+  historialEstados: [{
+    estado: { type: String, required: true },
+    fecha: { type: Date, default: Date.now },
+    mensaje: { type: String }
+  }],
   numeroAutorizacion: { type: String },
   fechaAutorizacion: { type: String },
   xmlSinFirma: { type: String },
   xmlFirmado: { type: String },
-  respuestaSRI: { type: Object }
+  respuestaSRI: { type: Object },
+  mensajeError: { type: String }
 }, {
   timestamps: true // Añade createdAt y updatedAt automáticamente
 });
