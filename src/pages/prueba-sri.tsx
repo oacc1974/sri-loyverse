@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Configuracion } from '../models/configuracion';
 import axios from 'axios';
 
@@ -31,9 +31,9 @@ export default function PruebaSRI() {
     // Manejar checkbox (automatización)
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
-      setConfiguracion(prev => prev ? {...prev, [name]: checked} : null);
+      setConfiguracion((prev: any) => prev ? {...prev, [name]: checked} : null);
     } else {
-      setConfiguracion(prev => prev ? {...prev, [name]: value} : null);
+      setConfiguracion((prev: any) => prev ? {...prev, [name]: value} : null);
     }
   };
   
