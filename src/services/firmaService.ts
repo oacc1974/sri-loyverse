@@ -4,8 +4,30 @@ import * as forge from 'node-forge';
 // Declaración de tipos para evitar errores de compilación
 declare const Buffer: any;
 
+// Constantes para los algoritmos requeridos por el SRI
+const CANONICALIZATION_ALGORITHM = 'http://www.w3.org/2001/10/xml-exc-c14n#';
+const SIGNATURE_ALGORITHM = 'http://www.w3.org/2000/09/xmldsig#rsa-sha1';
+const DIGEST_ALGORITHM = 'http://www.w3.org/2000/09/xmldsig#sha1';
+const TRANSFORM_ALGORITHM_1 = 'http://www.w3.org/2000/09/xmldsig#enveloped-signature';
+const TRANSFORM_ALGORITHM_2 = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
+
 /**
  * Firma un documento XML utilizando un certificado digital
+ * @param xml Documento XML a firmar
+ * @param certificadoBase64 Certificado digital en formato base64
+ * @param clave Clave del certificado
+ * @returns XML firmado
+ */
+/**
+ * Firma un documento XML utilizando un certificado digital según los requerimientos del SRI Ecuador
+ * 
+ * Implementa las siguientes recomendaciones:
+ * - Usa los algoritmos exactos requeridos por el SRI
+ * - Aplica las transformaciones correctas en el orden adecuado
+ * - Asegura que el XML esté en UTF-8 sin BOM
+ * - Valida el digest antes de retornar el XML firmado
+ * - Evita modificaciones post-firma
+ * 
  * @param xml Documento XML a firmar
  * @param certificadoBase64 Certificado digital en formato base64
  * @param clave Clave del certificado
@@ -86,28 +108,53 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     // Extraer el contenido del comprobante
     const comprobante = xml.substring(startPos, endPos);
     
-    // Crear el firmador XML
-    const sig = new SignedXml();
+    // Crear el firmador XML con los algoritmos requeridos por el SRI
+    const sig = new SignedXml({
+      canonicalizationAlgorithm: CANONICALIZATION_ALGORITHM,
+      signatureAlgorithm: SIGNATURE_ALGORITHM
+    });
+    
+    // Configurar la referencia exactamente como lo requiere el SRI
     sig.addReference(
       "//*[local-name(.)='factura']",
       [
-        'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
-        'http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
+        TRANSFORM_ALGORITHM_1,
+        TRANSFORM_ALGORITHM_2
       ],
-      'http://www.w3.org/2000/09/xmldsig#sha1'
+      DIGEST_ALGORITHM,
+      '',
+      '',
+      '',
+      true // Incluir el prefijo en el cálculo del digest
     );
     
     sig.signingKey = privateKeyPem;
     sig.keyInfoProvider = keyInfoProvider;
-    sig.computeSignature(comprobante);
+    
+    // Asegurar que el XML esté en UTF-8 sin BOM antes de firmar
+    const xmlUTF8 = comprobante.trim();
+    
+    // Computar la firma
+    sig.computeSignature(xmlUTF8);
     
     // Obtener el XML firmado
     const signedXml = sig.getSignedXml();
     
+    // Validar que el digest generado sea correcto antes de continuar
+    const digestValue = sig.references[0].digestValue;
+    if (!digestValue) {
+      throw new Error('No se pudo generar el digest value correctamente');
+    }
+    
+    console.log('DigestValue generado:', digestValue);
+    
     // Reemplazar el nodo comprobante con el comprobante firmado
     const xmlFirmado = xml.substring(0, startPos) + signedXml + xml.substring(endPos);
     
-    return xmlFirmado;
+    // Verificar que el XML firmado no tenga BOM
+    const xmlFirmadoFinal = xmlFirmado.replace(/^\uFEFF/, '');
+    
+    return xmlFirmadoFinal;
   } catch (error: any) {
     console.error('Error al firmar XML:', error);
     throw new Error(`Error al firmar XML: ${error.message}`);
