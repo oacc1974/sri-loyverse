@@ -41,11 +41,6 @@ interface SRIResponse {
       tipo: string;
     }>
   };
-  error?: {
-    codigo: string;
-    mensaje: string;
-    detalles: string;
-  };
 }
 
 export class SRIService {
@@ -189,12 +184,8 @@ export class SRIService {
    */
   async consultarAutorizacion(claveAcceso: string): Promise<SRIResponse> {
     try {
-      console.log(`[SRI-DEBUG] ====== INICIO CONSULTA DE AUTORIZACIÓN ======`);
-      console.log(`[SRI-DEBUG] Clave de acceso: ${claveAcceso}`);
-      console.log(`[SRI-DEBUG] Longitud de la clave: ${claveAcceso.length} caracteres`);
-      console.log(`[SRI-DEBUG] Dígito verificador: ${claveAcceso.substring(48)}`);
+      console.log(`[SRI-DEBUG] Iniciando consulta de autorización - Clave de acceso: ${claveAcceso}`);
       console.log(`[SRI-DEBUG] URL de autorización: ${this.autorizacionUrl}`);
-      console.log(`[SRI-DEBUG] Ambiente: ${this.ambiente === '1' ? 'PRUEBAS' : 'PRODUCCIÓN'}`);
       
       // Crear el envelope SOAP
       const soapEnvelope = `
@@ -219,23 +210,16 @@ export class SRIService {
         timeout: 60000 // 60 segundos de timeout para dar más tiempo al SRI
       };
       
-      console.log(`[SRI-DEBUG] Configuración de la solicitud:`, JSON.stringify(axiosConfig));
-      
       // Enviar la petición SOAP
-      console.log(`[SRI-DEBUG] Enviando solicitud SOAP al SRI...`);
-      const startTime = Date.now();
       const response = await axios.post(this.autorizacionUrl, soapEnvelope, axiosConfig);
-      const endTime = Date.now();
-      console.log(`[SRI-DEBUG] Respuesta recibida en ${endTime - startTime}ms`);
       
       // Procesar la respuesta
       const responseData = response.data;
-      console.log(`[SRI-DEBUG] Respuesta completa del SRI (primeros 500 caracteres): ${responseData.substring(0, 500)}...`);
       
       // Extraer la respuesta del envelope SOAP
+      // Nota: Esto es una simplificación, en un caso real se debería usar un parser XML
       const estadoMatch = responseData.match(/<estado>(.*?)<\/estado>/);
       const estado = estadoMatch ? estadoMatch[1] : 'DESCONOCIDO';
-      console.log(`[SRI-DEBUG] Estado de la autorización: ${estado}`);
       
       // Construir objeto de respuesta
       const sriResponse: SRIResponse = {
@@ -245,13 +229,10 @@ export class SRIService {
       // Si hay comprobantes, extraerlos
       const comprobantesMatch = responseData.match(/<comprobantes>([^]*?)<\/comprobantes>/);
       if (comprobantesMatch) {
-        console.log(`[SRI-DEBUG] Se encontraron comprobantes en la respuesta`);
-        
-        // Extraer información del comprobante
+        // Extraer información del comprobante (simplificado)
         const claveAccesoMatch = responseData.match(/<claveAcceso>([^]*?)<\/claveAcceso>/);
         
         if (claveAccesoMatch) {
-          console.log(`[SRI-DEBUG] Clave de acceso en respuesta: ${claveAccesoMatch[1]}`);
           sriResponse.comprobantes = {
             comprobante: {
               claveAcceso: claveAccesoMatch[1]
@@ -261,18 +242,11 @@ export class SRIService {
           // Si hay mensajes, extraerlos
           const mensajesMatch = responseData.match(/<mensajes>([^]*?)<\/mensajes>/);
           if (mensajesMatch) {
-            console.log(`[SRI-DEBUG] Se encontraron mensajes en la respuesta`);
-            
-            // Extraer mensajes
+            // Extraer mensajes (simplificado)
             const identificadorMatch = responseData.match(/<identificador>([^]*?)<\/identificador>/);
             const mensajeMatch = responseData.match(/<mensaje>([^]*?)<\/mensaje>/);
             const infoAdicionalMatch = responseData.match(/<informacionAdicional>([^]*?)<\/informacionAdicional>/);
             const tipoMatch = responseData.match(/<tipo>([^]*?)<\/tipo>/);
-            
-            if (identificadorMatch) console.log(`[SRI-DEBUG] Identificador: ${identificadorMatch[1]}`);
-            if (mensajeMatch) console.log(`[SRI-DEBUG] Mensaje: ${mensajeMatch[1]}`);
-            if (infoAdicionalMatch) console.log(`[SRI-DEBUG] Información adicional: ${infoAdicionalMatch[1]}`);
-            if (tipoMatch) console.log(`[SRI-DEBUG] Tipo: ${tipoMatch[1]}`);
             
             if (identificadorMatch && mensajeMatch && tipoMatch) {
               sriResponse.comprobantes.comprobante.mensajes = {
@@ -284,61 +258,26 @@ export class SRIService {
                 }
               };
             }
-          } else {
-            console.log(`[SRI-DEBUG] No se encontraron mensajes en la respuesta`);
           }
-        } else {
-          console.log(`[SRI-DEBUG] No se encontró clave de acceso en la respuesta`);
         }
-      } else {
-        console.log(`[SRI-DEBUG] No se encontraron comprobantes en la respuesta`);
       }
-      
-      console.log(`[SRI-DEBUG] Respuesta final procesada:`, JSON.stringify(sriResponse, null, 2));
-      console.log(`[SRI-DEBUG] ====== FIN CONSULTA DE AUTORIZACIÓN ======`);
       
       return sriResponse;
     } catch (error) {
-      console.error(`[SRI-ERROR] ====== ERROR EN CONSULTA DE AUTORIZACIÓN ======`);
       const axiosError = error as AxiosError;
-      console.error(`[SRI-ERROR] Mensaje de error: ${axiosError.message}`);
-      console.error(`[SRI-ERROR] Código de error: ${axiosError.code}`);
-      console.error(`[SRI-ERROR] Stack trace: ${axiosError.stack}`);
+      console.error('[SRI-ERROR] Error al consultar autorización en el SRI:', axiosError);
       
       // Logs detallados del error para diagnóstico
       if (axiosError.response) {
-        console.error(`[SRI-ERROR] Código de estado HTTP: ${axiosError.response.status}`);
-        console.error(`[SRI-ERROR] Headers de respuesta: ${JSON.stringify(axiosError.response.headers)}`);
-        console.error(`[SRI-ERROR] Datos de respuesta: ${JSON.stringify(axiosError.response.data).substring(0, 1000)}...`);
+        console.error('[SRI-ERROR] Datos de respuesta de error:', axiosError.response.data);
+        console.error('[SRI-ERROR] Código de estado:', axiosError.response.status);
       } else if (axiosError.request) {
-        console.error(`[SRI-ERROR] No se recibió respuesta del servidor`);
-        console.error(`[SRI-ERROR] Detalles de la solicitud: ${JSON.stringify(axiosError.request).substring(0, 500)}...`);
+        console.error('[SRI-ERROR] Solicitud sin respuesta:', axiosError.request);
         
         // Información adicional para errores de conexión
         if (axiosError.code === 'ECONNRESET') {
-          console.error(`[SRI-ERROR] CONEXIÓN REINICIADA (ECONNRESET) - Esto puede indicar un timeout o problema de red con el SRI`);
-          console.error(`[SRI-ERROR] La clave de acceso utilizada fue: ${claveAcceso}`);
-        } else if (axiosError.code === 'ETIMEDOUT') {
-          console.error(`[SRI-ERROR] TIMEOUT EN LA CONEXIÓN - El servidor del SRI tardó demasiado en responder`);
-        } else if (axiosError.code === 'ENOTFOUND') {
-          console.error(`[SRI-ERROR] SERVIDOR NO ENCONTRADO - Verifique la URL y la conectividad a internet`);
+          console.error('[SRI-ERROR] Conexión reiniciada (ECONNRESET) durante consulta de autorización');
         }
-      } else {
-        console.error(`[SRI-ERROR] Error en la configuración de la solicitud`);
-      }
-      
-      console.error(`[SRI-ERROR] ====== FIN ERROR EN CONSULTA DE AUTORIZACIÓN ======`);
-      
-      // Crear una respuesta de error para devolver
-      return {
-        estado: 'ERROR',
-        error: {
-          codigo: axiosError.code || 'UNKNOWN',
-          mensaje: axiosError.message,
-          detalles: `Error al consultar autorización: ${axiosError.message}`
-        }
-      };
-    }
       } else {
         console.error('[SRI-ERROR] Error de configuración en consulta de autorización:', axiosError.message);
       }
