@@ -184,8 +184,17 @@ export class XMLService {
       secuencial = '000000001'; // Secuencial por defecto
     }
     
-    // Código numérico aleatorio de 8 dígitos
-    const codigoNumerico = Math.floor(10000000 + Math.random() * 90000000).toString();
+    // Código numérico aleatorio de exactamente 8 dígitos
+    // Generamos un número entre 0 y 99999999 y aseguramos que tenga 8 dígitos
+    const codigoNumerico = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+    
+    // Verificamos que el código numérico tenga exactamente 8 dígitos
+    if (codigoNumerico.length !== 8) {
+      console.error(`[XML-ERROR] El código numérico no tiene 8 dígitos: ${codigoNumerico.length}`);
+      // Corregir la longitud si es necesario
+      const codigoCorregido = codigoNumerico.substring(0, 8).padStart(8, '0');
+      console.log(`[XML-DEBUG] Código numérico corregido: ${codigoCorregido}`);
+    }
     
     // Tipo de emisión (1 = Normal)
     const tipoEmision = factura.tipoEmision || '1';
