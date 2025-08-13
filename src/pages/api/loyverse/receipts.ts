@@ -131,13 +131,17 @@ function mapearLoyverseAFactura(receipt: any, configuracion: any) {
     
     // Calcular impuestos
     const impuestos = [];
+    // Usar el impuesto IVA desde la configuración
     const impuestoIVA = parseFloat(configuracion.impuestoIVA || '12');
+    
+    // Determinar el código de porcentaje según la tasa de IVA de la configuración
+    const codigoPorcentajeIVA = impuestoIVA.toString();
     
     // Agregar IVA
     impuestos.push({
       codigo: '2', // Código para IVA
-      codigoPorcentaje: impuestoIVA === 12 ? '2' : '0', // 2 para IVA 12%, 0 para 0%
-      tarifa: impuestoIVA,
+      codigoPorcentaje: codigoPorcentajeIVA, // Usar directamente el valor de la configuración
+      tarifa: impuestoIVA, // Usar el valor de la configuración
       baseImponible: precioTotalSinImpuesto,
       valor: precioTotalSinImpuesto * (impuestoIVA / 100)
     });
@@ -187,7 +191,7 @@ function mapearLoyverseAFactura(receipt: any, configuracion: any) {
     totalConImpuestos: [
       {
         codigo: '2', // Código para IVA
-        codigoPorcentaje: configuracion.impuestoIVA === '12' ? '2' : '0', // 2 para IVA 12%, 0 para 0%
+        codigoPorcentaje: parseFloat(configuracion.impuestoIVA || '12').toString(), // Usar directamente el valor de la configuración
         baseImponible: totalSinImpuestos,
         valor: totalIVA
       }

@@ -516,6 +516,10 @@ export default function PruebaSRI() {
           )}
         </div>
       )}
+      {/* Indicador de hora de actualización */}
+      <div className="fixed bottom-2 right-2 text-xs text-gray-500">
+        Última actualización: 13/08/2025 13:45
+      </div>
     </div>
   );
 }
