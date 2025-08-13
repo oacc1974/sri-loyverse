@@ -190,20 +190,26 @@ export default function PruebaSRI() {
         throw new Error('Factura no encontrada');
       }
 
-      // Enviar a procesar
-      const response = await axios.post('/api/factura/procesar', {
+      // Preparar los datos de la factura asegurando que los campos estén correctamente asignados
+      const facturaData = {
         facturaId: factura.facturaId,
         accion: 'proceso_completo',
         ambiente: configuracion.ambiente === 'produccion' ? '2' : '1',
         // Enviar certificado y clave para permitir procesamiento sin configuración guardada
         certificadoBase64: configuracion.certificadoBase64,
         claveCertificado: configuracion.claveCertificado,
+        // IMPORTANTE: Asegurar que los campos ruc y razonSocial estén correctamente asignados
+        // El RUC debe ser el número de identificación fiscal (ej: 9999999999999)
+        // La razón social debe ser el nombre de la empresa o persona (ej: EMPRESA DE PRUEBA)
         ruc: configuracion.ruc,
         razonSocial: configuracion.razonSocial,
         nombreComercial: configuracion.nombreComercial,
         direccion: configuracion.direccion,
         email: configuracion.email
-      });
+      };
+      
+      // Enviar a procesar
+      const response = await axios.post('/api/factura/procesar', facturaData);
       
       if (response.data.success) {
         setResultado(response.data);
@@ -221,6 +227,9 @@ export default function PruebaSRI() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Prueba de Integración SRI</h1>
+      <div className="fixed bottom-2 right-2 text-xs text-gray-500">
+        Última actualización: 2025-08-13 14:05
+      </div>
 
       {/* Sección de Configuración */}
       <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
