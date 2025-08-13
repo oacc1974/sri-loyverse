@@ -440,17 +440,47 @@ export default function PruebaSRI() {
       {resultado && (
         <div className="bg-gray-100 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-2">Resultado del Procesamiento</h2>
-          <div className="overflow-auto">
+          
+          {/* Mostrar estado de la factura con color según el estado */}
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Estado de la Factura:</h3>
+            <div className={`mt-2 px-4 py-2 rounded-md inline-block font-bold ${resultado.data?.estado === 'RECHAZADA' ? 'bg-red-100 text-red-800' : resultado.data?.estado === 'AUTORIZADA' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+              {resultado.data?.estado || 'PROCESANDO'}
+            </div>
+            {resultado.data?.numeroAutorizacion && (
+              <div className="mt-2">
+                <span className="font-semibold">Número de Autorización:</span> {resultado.data.numeroAutorizacion}
+              </div>
+            )}
+            {resultado.data?.fechaAutorizacion && (
+              <div className="mt-1">
+                <span className="font-semibold">Fecha de Autorización:</span> {resultado.data.fechaAutorizacion}
+              </div>
+            )}
+          </div>
+          
+          <div className="overflow-auto mb-4">
+            <h3 className="text-lg font-semibold mb-2">Detalles de la Respuesta:</h3>
             <pre className="bg-gray-800 text-white p-4 rounded">
               {JSON.stringify(resultado, null, 2)}
             </pre>
           </div>
           
-          {/* Mostrar XML cuando la factura es rechazada */}
-          {resultado.data?.estado === 'RECHAZADA' && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2 text-red-600">XML Rechazado</h3>
-              <p className="mb-2 text-sm">Este es el XML que fue enviado al SRI y fue rechazado. Revise el formato y los datos para identificar el problema.</p>
+          {/* Mostrar XML siempre, no solo cuando es rechazada */}
+          <div className="mt-4">
+              <h3 className={`text-lg font-semibold mb-2 ${resultado.data?.estado === 'RECHAZADA' ? 'text-red-600' : resultado.data?.estado === 'AUTORIZADA' ? 'text-green-600' : 'text-blue-600'}`}>
+                XML Generado - {resultado.data?.estado || 'PROCESANDO'}
+              </h3>
+              <p className="mb-2 text-sm">
+                {resultado.data?.estado === 'RECHAZADA' 
+                  ? 'Este es el XML que fue enviado al SRI y fue rechazado. Revise el formato y los datos para identificar el problema.'
+                  : resultado.data?.estado === 'AUTORIZADA'
+                    ? 'Este es el XML que fue enviado al SRI y fue autorizado correctamente.'
+                    : 'Este es el XML que fue generado y enviado al SRI. Pendiente de autorización.'}
+              </p>
+              <p className="mb-2 text-xs bg-yellow-50 p-2 rounded border border-yellow-200">
+                <strong>Nota:</strong> El XML se regenera completamente cada vez que se procesa la factura, asegurando que se apliquen todas las correcciones.
+              </p>
               
               {/* Pestañas para alternar entre XML firmado y sin firmar */}
               <div className="border-b border-gray-200 mb-4">
@@ -522,7 +552,6 @@ export default function PruebaSRI() {
                 </div>
               )}
             </div>
-          )}
         </div>
       )}
       {/* Indicador de hora de actualización */}

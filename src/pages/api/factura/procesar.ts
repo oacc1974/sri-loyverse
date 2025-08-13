@@ -229,20 +229,27 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     // Regeneramos el XML sin importar si ya existe uno firmado para asegurar que se apliquen todas las correcciones
     console.log(`[PROCESO-DEBUG] Regenerando XML para factura ${factura._id} (reprocesamiento)`); 
     const xmlSinFirma = await generarXML(factura);
-    // Guardar el XML sin firmar para referencia (útil para diagnóstico)
-    factura.xmlSinFirma = xmlSinFirma;
-    factura.xmlFirmado = await firmarXML(
+    const xmlFirmado = await firmarXML(
       xmlSinFirma, 
       configuracion.certificadoBase64, 
       configuracion.claveCertificado
     );
+    
+    // Almacenamos temporalmente el XML firmado y sin firmar en memoria
+    // pero NO lo guardamos en la base de datos hasta confirmar que es aceptado por el SRI
+    const xmlTemporal = {
+      sinFirma: xmlSinFirma,
+      firmado: xmlFirmado
+    };
+    
+    // Actualizamos el estado pero no guardamos el XML todavía
     factura.estado = 'FIRMADO';
     await factura.save();
-    console.log(`[PROCESO-DEBUG] XML regenerado y firmado correctamente para factura ${factura._id}`);
+    console.log(`[PROCESO-DEBUG] XML regenerado y firmado correctamente para factura ${factura._id} (pendiente de guardar)`);
     
     
     // 2. Enviar
-    const respuestaSRI = await enviarSRI(factura.xmlFirmado);
+    const respuestaSRI = await enviarSRI(xmlTemporal.firmado);
     factura.respuestaSRI = respuestaSRI;
     factura.estado = respuestaSRI.estado || 'ENVIADO';
     await factura.save();
@@ -253,6 +260,16 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     factura.numeroAutorizacion = respuestaAutorizacion.numeroAutorizacion;
     factura.fechaAutorizacion = respuestaAutorizacion.fechaAutorizacion;
     factura.estado = respuestaAutorizacion.estado || factura.estado;
+    
+    // Solo guardamos el XML si la factura fue autorizada por el SRI
+    if (factura.estado === 'AUTORIZADA') {
+      console.log(`[PROCESO-DEBUG] Factura ${factura._id} autorizada por el SRI. Guardando XML definitivo.`);
+      factura.xmlSinFirma = xmlTemporal.sinFirma;
+      factura.xmlFirmado = xmlTemporal.firmado;
+    } else {
+      console.log(`[PROCESO-DEBUG] Factura ${factura._id} NO autorizada (${factura.estado}). XML no guardado permanentemente.`);
+    }
+    
     await factura.save();
     
     // Preparar la respuesta con datos básicos
@@ -264,10 +281,13 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
       respuestaSRI: factura.respuestaSRI
     };
     
-    // Si la factura fue rechazada, incluir los XMLs para diagnóstico
+    // Siempre incluir los XMLs para diagnóstico y verificación, independientemente del estado
+    // Esto permite al frontend mostrar el XML generado y verificar que se regenera correctamente
+    responseData.xmlFirmado = xmlTemporal.firmado;
+    responseData.xmlSinFirma = xmlTemporal.sinFirma;
+    
+    // Si hay mensaje de error, incluirlo
     if (factura.estado === 'RECHAZADA') {
-      responseData.xmlFirmado = factura.xmlFirmado;
-      responseData.xmlSinFirma = factura.xmlSinFirma;
       responseData.mensajeError = factura.mensajeError || 'Factura rechazada por el SRI';
     }
     
