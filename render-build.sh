@@ -4,10 +4,13 @@ set -e  # Salir inmediatamente si cualquier comando falla
 echo "=== Iniciando proceso de construcción para Render ==="
 
 # Eliminar archivos conflictivos
-echo "=== Eliminando archivos conflictivos ==="
+echo "=== Verificando archivos de componentes server ==="
+# Ya no eliminamos los archivos de configuración/dashboard porque ahora son componentes server correctos
 if [ -f "src/app/configuracion/page.tsx" ]; then
-  echo "Eliminando archivo conflictivo: src/app/configuracion/page.tsx"
-  rm -f "src/app/configuracion/page.tsx"
+  echo "Componente server encontrado: src/app/configuracion/page.tsx"
+fi
+if [ -f "src/app/dashboard/page.tsx" ]; then
+  echo "Componente server encontrado: src/app/dashboard/page.tsx"
 fi
 
 # Eliminar archivos temporales que pueden causar errores de compilación
