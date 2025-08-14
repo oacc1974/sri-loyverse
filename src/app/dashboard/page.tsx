@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import type { ReactNode, ReactElement } from 'react';
 import axios from 'axios';
 import FacturaDetalle from '../../components/FacturaDetalle';
 // Definición de interfaces necesarias para el dashboard
@@ -70,10 +71,10 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-const Modal = ({ isOpen, onClose, title, children }: ModalProps): React.ReactElement | null => {
+const Modal = ({ isOpen, onClose, title, children }: ModalProps): ReactElement | null => {
   if (!isOpen) return null;
   
   return (
