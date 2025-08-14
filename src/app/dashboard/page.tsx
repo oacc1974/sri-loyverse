@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import axios from 'axios';
 import FacturaDetalle from '../../components/FacturaDetalle';
 // Definición de interfaces necesarias para el dashboard
@@ -106,19 +106,19 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps): React.ReactEle
 };
 
 export default function DashboardPage() {
-  const [facturas, setFacturas] = useState<Factura[]>([]);
-  const [filtroAmbiente, setFiltroAmbiente] = useState<'Todos' | '1' | '2'>('Todos');
-  const [filtroEstado, setFiltroEstado] = useState<'Todos' | 'AUTORIZADO' | 'RECHAZADO' | 'PENDIENTE' | 'DESCONOCIDO'>('Todos');
-  const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
-  const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
-  const [filtroRuc, setFiltroRuc] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [selectedFactura, setSelectedFactura] = useState<Factura | null>(null);
-  const [showDetalleModal, setShowDetalleModal] = useState(false);
-  const [verificandoFactura, setVerificandoFactura] = useState(false);
-  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
+  const [facturas, setFacturas] = React.useState<Factura[]>([]);
+  const [filtroAmbiente, setFiltroAmbiente] = React.useState<'Todos' | '1' | '2'>('Todos');
+  const [filtroEstado, setFiltroEstado] = React.useState<'Todos' | 'AUTORIZADO' | 'RECHAZADO' | 'PENDIENTE' | 'DESCONOCIDO'>('Todos');
+  const [filtroFechaDesde, setFiltroFechaDesde] = React.useState('');
+  const [filtroFechaHasta, setFiltroFechaHasta] = React.useState('');
+  const [filtroRuc, setFiltroRuc] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [success, setSuccess] = React.useState('');
+  const [selectedFactura, setSelectedFactura] = React.useState<Factura | null>(null);
+  const [showDetalleModal, setShowDetalleModal] = React.useState(false);
+  const [verificandoFactura, setVerificandoFactura] = React.useState(false);
+  const [ultimaActualizacion, setUltimaActualizacion] = React.useState<Date | null>(null);
 
   // Cargar facturas reales desde la API
   const cargarFacturas = async () => {
@@ -239,7 +239,7 @@ export default function DashboardPage() {
   };
   
   // Cargar facturas al iniciar y cuando cambien los filtros
-  useEffect(() => {
+  React.useEffect(() => {
     cargarFacturas();
   }, [filtroAmbiente, filtroEstado, filtroFechaDesde, filtroFechaHasta, filtroRuc]);
 
