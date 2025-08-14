@@ -236,9 +236,9 @@ export class LoyverseService {
         descuento,
         precioTotalSinImpuesto,
         impuestos: [{
-          codigo: '2', // IVA (este código siempre es 2 para IVA)
-          codigoPorcentaje: Math.round(item.tax_rate).toString(), // Usar directamente el porcentaje como código
-          tarifa: item.tax_rate, // Usar la tasa real del impuesto
+          codigo: '2', // IVA
+          codigoPorcentaje: '2', // 12%
+          tarifa: 12,
           baseImponible: precioTotalSinImpuesto,
           valor: item.tax.amount
         }]
@@ -282,8 +282,8 @@ export class LoyverseService {
       totalSinImpuestos,
       totalDescuento,
       totalConImpuestos: [{
-        codigo: '2', // IVA (este código siempre es 2 para IVA)
-        codigoPorcentaje: Math.round(loyverseReceipt.items[0]?.tax_rate || 0).toString(), // Usar directamente el porcentaje como código
+        codigo: '2', // IVA
+        codigoPorcentaje: '2', // 12%
         baseImponible: totalSinImpuestos,
         valor: totalImpuesto
       }],

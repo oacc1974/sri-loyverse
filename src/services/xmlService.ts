@@ -5,57 +5,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-// Tabla de códigos de IVA según SRI
-const CODIGOS_IVA = {
-  // IVA general 15%
-  IVA_15: {
-    codigo: '2',
-    codigoPorcentaje: '3',
-    tarifa: 15.00
-  },
-  // IVA 0%
-  IVA_0: {
-    codigo: '2',
-    codigoPorcentaje: '0',
-    tarifa: 0.00
-  },
-  // Exento de IVA
-  EXENTO: {
-    codigo: '2',
-    codigoPorcentaje: '6',
-    tarifa: 0.00
-  },
-  // No objeto de impuesto
-  NO_OBJETO: {
-    codigo: '2',
-    codigoPorcentaje: '7',
-    tarifa: 0.00
-  }
-};
-
-/**
- * Determina el código de IVA correcto según la tarifa
- * @param tarifa Porcentaje de IVA (ej: 15.00, 0.00)
- * @returns Objeto con codigo, codigoPorcentaje y tarifa según SRI
- */
-function getCodigoIVA(tarifa: number) {
-  // Redondear a 2 decimales para comparaciones precisas
-  const tarifaRedondeada = Math.round(tarifa * 100) / 100;
-  
-  if (tarifaRedondeada === 15.00) {
-    return CODIGOS_IVA.IVA_15;
-  } else if (tarifaRedondeada === 0.00) {
-    return CODIGOS_IVA.IVA_0;
-  }
-  
-  // Para otros casos, usar el código estándar pero con el porcentaje específico
-  return {
-    codigo: '2',
-    codigoPorcentaje: String(tarifaRedondeada), // Convertir el porcentaje a string
-    tarifa: tarifaRedondeada
-  };
-}
-
 export class XMLService {
   /**
    * Genera el XML para una factura según el formato del SRI
@@ -103,20 +52,12 @@ export class XMLService {
           totalSinImpuestos: factura.totalSinImpuestos.toFixed(2),
           totalDescuento: factura.totalDescuento.toFixed(2),
           totalConImpuestos: {
-            totalImpuesto: factura.totalConImpuestos.map(impuesto => {
-              // Aplicar códigos SRI correctos para IVA
-              const tarifaImpuesto = impuesto.valor / impuesto.baseImponible * 100;
-              const codigoInfo = getCodigoIVA(tarifaImpuesto);
-              
-              console.log(`[XML-DEBUG] Impuesto detectado: ${tarifaImpuesto.toFixed(2)}%, usando código=${codigoInfo.codigo}, codigoPorcentaje=${codigoInfo.codigoPorcentaje}`);
-              
-              return {
-                codigo: codigoInfo.codigo, // Siempre '2' para IVA
-                codigoPorcentaje: codigoInfo.codigoPorcentaje, // '3' para IVA 15%
-                baseImponible: impuesto.baseImponible.toFixed(2),
-                valor: impuesto.valor.toFixed(2)
-              };
-            })
+            totalImpuesto: factura.totalConImpuestos.map(impuesto => ({
+              codigo: impuesto.codigo,
+              codigoPorcentaje: impuesto.codigoPorcentaje,
+              baseImponible: impuesto.baseImponible.toFixed(2),
+              valor: impuesto.valor.toFixed(2)
+            }))
           },
           propina: factura.propina.toFixed(2),
           importeTotal: factura.importeTotal.toFixed(2),
@@ -151,25 +92,13 @@ export class XMLService {
             descuento: detalle.descuento.toFixed(2),
             precioTotalSinImpuesto: detalle.precioTotalSinImpuesto.toFixed(2),
             impuestos: {
-              impuesto: detalle.impuestos.map(impuesto => {
-                // Aplicar códigos SRI correctos para IVA en detalles
-                const tarifaImpuesto = impuesto.tarifa;
-                const codigoInfo = getCodigoIVA(tarifaImpuesto);
-                
-                // Recalcular el valor del impuesto para asegurar precisión
-                // valor = baseImponible * tarifa / 100, redondeado a 2 decimales
-                const valorCalculado = Math.round((impuesto.baseImponible * tarifaImpuesto / 100) * 100) / 100;
-                
-                console.log(`[XML-DEBUG] Detalle impuesto: tarifa=${tarifaImpuesto.toFixed(2)}%, base=${impuesto.baseImponible.toFixed(2)}, valor=${valorCalculado.toFixed(2)}`);
-                
-                return {
-                  codigo: codigoInfo.codigo, // Siempre '2' para IVA
-                  codigoPorcentaje: codigoInfo.codigoPorcentaje, // '3' para IVA 15%
-                  tarifa: tarifaImpuesto.toFixed(2), // El porcentaje real (15.00)
-                  baseImponible: impuesto.baseImponible.toFixed(2),
-                  valor: valorCalculado.toFixed(2)
-                };
-              })
+              impuesto: detalle.impuestos.map(impuesto => ({
+                codigo: impuesto.codigo,
+                codigoPorcentaje: impuesto.codigoPorcentaje,
+                tarifa: impuesto.tarifa.toFixed(2),
+                baseImponible: impuesto.baseImponible.toFixed(2),
+                valor: impuesto.valor.toFixed(2)
+              }))
             }
           }))
         }
@@ -255,17 +184,8 @@ export class XMLService {
       secuencial = '000000001'; // Secuencial por defecto
     }
     
-    // Código numérico aleatorio de exactamente 8 dígitos
-    // Generamos un número entre 0 y 99999999 y aseguramos que tenga 8 dígitos
-    const codigoNumerico = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
-    
-    // Verificamos que el código numérico tenga exactamente 8 dígitos
-    if (codigoNumerico.length !== 8) {
-      console.error(`[XML-ERROR] El código numérico no tiene 8 dígitos: ${codigoNumerico.length}`);
-      // Corregir la longitud si es necesario
-      const codigoCorregido = codigoNumerico.substring(0, 8).padStart(8, '0');
-      console.log(`[XML-DEBUG] Código numérico corregido: ${codigoCorregido}`);
-    }
+    // Código numérico aleatorio de 8 dígitos
+    const codigoNumerico = Math.floor(10000000 + Math.random() * 90000000).toString();
     
     // Tipo de emisión (1 = Normal)
     const tipoEmision = factura.tipoEmision || '1';

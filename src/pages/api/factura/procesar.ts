@@ -229,62 +229,22 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     // Regeneramos el XML sin importar si ya existe uno firmado para asegurar que se apliquen todas las correcciones
     console.log(`[PROCESO-DEBUG] Regenerando XML para factura ${factura._id} (reprocesamiento)`); 
     const xmlSinFirma = await generarXML(factura);
-    const xmlFirmado = await firmarXML(
+    // Guardar el XML sin firmar para referencia (útil para diagnóstico)
+    factura.xmlSinFirma = xmlSinFirma;
+    factura.xmlFirmado = await firmarXML(
       xmlSinFirma, 
       configuracion.certificadoBase64, 
       configuracion.claveCertificado
     );
-    
-    // Almacenamos temporalmente el XML firmado y sin firmar en memoria
-    // pero NO lo guardamos en la base de datos hasta confirmar que es aceptado por el SRI
-    const xmlTemporal = {
-      sinFirma: xmlSinFirma,
-      firmado: xmlFirmado
-    };
-    
-    // Actualizamos el estado pero no guardamos el XML todavía
     factura.estado = 'FIRMADO';
-    
-    // Registrar en historial de estados
-    if (!factura.historialEstados) {
-      factura.historialEstados = [];
-    }
-    
-    factura.historialEstados.push({
-      estado: 'FIRMADO',
-      fecha: new Date(),
-      mensaje: 'XML generado y firmado correctamente'
-    });
-    
     await factura.save();
-    console.log(`[PROCESO-DEBUG] XML regenerado y firmado correctamente para factura ${factura._id} (pendiente de guardar)`);
+    console.log(`[PROCESO-DEBUG] XML regenerado y firmado correctamente para factura ${factura._id}`);
     
     
     // 2. Enviar
-    const respuestaSRI = await enviarSRI(xmlTemporal.firmado);
+    const respuestaSRI = await enviarSRI(factura.xmlFirmado);
     factura.respuestaSRI = respuestaSRI;
     factura.estado = respuestaSRI.estado || 'ENVIADO';
-    
-    // Extraer mensaje de error si existe
-    let mensajeEnvio = 'Comprobante enviado al SRI';
-    if (respuestaSRI.mensajes) {
-      const mensaje = respuestaSRI.mensajes.mensaje;
-      if (Array.isArray(mensaje)) {
-        mensajeEnvio = mensaje.map(m => `${m.identificador}: ${m.mensaje}${m.informacionAdicional ? ` - ${m.informacionAdicional}` : ''}`).join('; ');
-        factura.mensajeError = mensajeEnvio;
-      } else if (mensaje) {
-        mensajeEnvio = `${mensaje.identificador}: ${mensaje.mensaje}${mensaje.informacionAdicional ? ` - ${mensaje.informacionAdicional}` : ''}`;
-        factura.mensajeError = mensajeEnvio;
-      }
-    }
-    
-    // Registrar en historial de estados
-    factura.historialEstados.push({
-      estado: factura.estado,
-      fecha: new Date(),
-      mensaje: mensajeEnvio
-    });
-    
     await factura.save();
     
     // 3. Autorizar (verificar)
@@ -293,39 +253,6 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     factura.numeroAutorizacion = respuestaAutorizacion.numeroAutorizacion;
     factura.fechaAutorizacion = respuestaAutorizacion.fechaAutorizacion;
     factura.estado = respuestaAutorizacion.estado || factura.estado;
-    
-    // Extraer mensaje de autorización o error
-    let mensajeAutorizacion = 'Verificación de autorización completada';
-    if (respuestaAutorizacion.comprobantes?.comprobante.mensajes) {
-      const mensaje = respuestaAutorizacion.comprobantes.comprobante.mensajes.mensaje;
-      if (Array.isArray(mensaje)) {
-        mensajeAutorizacion = mensaje.map(m => `${m.identificador}: ${m.mensaje}${m.informacionAdicional ? ` - ${m.informacionAdicional}` : ''}`).join('; ');
-        factura.mensajeError = mensajeAutorizacion;
-      } else if (mensaje) {
-        mensajeAutorizacion = `${mensaje.identificador}: ${mensaje.mensaje}${mensaje.informacionAdicional ? ` - ${mensaje.informacionAdicional}` : ''}`;
-        factura.mensajeError = mensajeAutorizacion;
-      }
-    } else if (factura.estado === 'AUTORIZADA') {
-      mensajeAutorizacion = 'Comprobante autorizado por el SRI';
-      factura.mensajeError = null; // Limpiar mensaje de error si fue autorizado
-    }
-    
-    // Registrar en historial de estados
-    factura.historialEstados.push({
-      estado: factura.estado,
-      fecha: new Date(),
-      mensaje: mensajeAutorizacion
-    });
-    
-    // Solo guardamos el XML si la factura fue autorizada por el SRI
-    if (factura.estado === 'AUTORIZADA') {
-      console.log(`[PROCESO-DEBUG] Factura ${factura._id} autorizada por el SRI. Guardando XML definitivo.`);
-      factura.xmlSinFirma = xmlTemporal.sinFirma;
-      factura.xmlFirmado = xmlTemporal.firmado;
-    } else {
-      console.log(`[PROCESO-DEBUG] Factura ${factura._id} NO autorizada (${factura.estado}). XML no guardado permanentemente.`);
-    }
-    
     await factura.save();
     
     // Preparar la respuesta con datos básicos
@@ -334,19 +261,14 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
       estado: factura.estado,
       numeroAutorizacion: factura.numeroAutorizacion,
       fechaAutorizacion: factura.fechaAutorizacion,
-      respuestaSRI: factura.respuestaSRI,
-      historialEstados: factura.historialEstados,
-      mensajeError: factura.mensajeError
+      respuestaSRI: factura.respuestaSRI
     };
     
-    // Siempre incluir los XMLs para diagnóstico y verificación, independientemente del estado
-    // Esto permite al frontend mostrar el XML generado y verificar que se regenera correctamente
-    responseData.xmlFirmado = xmlTemporal.firmado;
-    responseData.xmlSinFirma = xmlTemporal.sinFirma;
-    
-    // Siempre incluir el mensaje de error si existe, independientemente del estado
-    if (factura.mensajeError) {
-      responseData.mensajeError = factura.mensajeError;
+    // Si la factura fue rechazada, incluir los XMLs para diagnóstico
+    if (factura.estado === 'RECHAZADA') {
+      responseData.xmlFirmado = factura.xmlFirmado;
+      responseData.xmlSinFirma = factura.xmlSinFirma;
+      responseData.mensajeError = factura.mensajeError || 'Factura rechazada por el SRI';
     }
     
     return res.status(200).json({ 
@@ -356,40 +278,10 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     });
   } catch (error: any) {
     console.error('Error en proceso completo:', error);
-    
-    // Si tenemos acceso a la factura, registrar el error en su historial
-    if (factura) {
-      try {
-        factura.estado = 'ERROR';
-        factura.mensajeError = `Error en proceso: ${error.message}`;
-        
-        // Registrar en historial de estados
-        if (!factura.historialEstados) {
-          factura.historialEstados = [];
-        }
-        
-        factura.historialEstados.push({
-          estado: 'ERROR',
-          fecha: new Date(),
-          mensaje: `Error en proceso: ${error.message}`
-        });
-        
-        await factura.save();
-      } catch (saveError) {
-        console.error('Error al guardar el estado de error en la factura:', saveError);
-      }
-    }
-    
     return res.status(500).json({ 
       success: false, 
       message: `Error en proceso completo: ${error.message}`,
-      error: error.toString(),
-      factura: factura ? {
-        id: factura._id,
-        estado: factura.estado,
-        mensajeError: factura.mensajeError,
-        historialEstados: factura.historialEstados
-      } : undefined
+      error: error.toString()
     });
   }
 }
