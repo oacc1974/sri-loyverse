@@ -108,11 +108,12 @@ export async function firmarXML(xml: string, certificadoBase64: string, clave: s
     // Extraer el contenido del comprobante
     const comprobante = xml.substring(startPos, endPos);
     
-    // Crear el firmador XML con los algoritmos requeridos por el SRI
-    const sig = new SignedXml({
-      canonicalizationAlgorithm: CANONICALIZATION_ALGORITHM,
-      signatureAlgorithm: SIGNATURE_ALGORITHM
-    });
+    // Crear el firmador XML
+    const sig = new SignedXml();
+    
+    // Configurar los algoritmos requeridos por el SRI
+    sig.signatureAlgorithm = SIGNATURE_ALGORITHM;
+    sig.canonicalizationAlgorithm = CANONICALIZATION_ALGORITHM;
     
     // Configurar la referencia exactamente como lo requiere el SRI
     sig.addReference(
