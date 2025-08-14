@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import FacturaDetalle from '../../components/FacturaDetalle';
 // Definición de interfaces necesarias para el dashboard
@@ -592,6 +591,7 @@ export default function DashboardPage() {
         isOpen={showDetalleModal}
         onClose={handleCerrarDetalles}
         title={`Factura ${selectedFactura ? `${selectedFactura.estab}-${selectedFactura.ptoEmi}-${selectedFactura.secuencial}` : ''}`}
+        children={undefined}
       >
         {selectedFactura && (
           <FacturaDetalle
