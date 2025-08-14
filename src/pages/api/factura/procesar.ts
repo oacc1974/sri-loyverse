@@ -229,6 +229,16 @@ async function procesoCompleto(res: NextApiResponse, factura: any, configuracion
     // Regeneramos el XML sin importar si ya existe uno firmado para asegurar que se apliquen todas las correcciones
     console.log(`[PROCESO-DEBUG] Regenerando XML para factura ${factura._id} (reprocesamiento)`); 
     const xmlSinFirma = await generarXML(factura);
+    
+    // Extraer la clave de acceso del XML generado
+    const claveAccesoMatch = xmlSinFirma.match(/<claveAcceso>([^<]+)<\/claveAcceso>/i);
+    if (claveAccesoMatch && claveAccesoMatch[1]) {
+      factura.claveAcceso = claveAccesoMatch[1];
+      console.log(`[PROCESO-DEBUG] Clave de acceso extraída del XML: ${factura.claveAcceso}`);
+    } else {
+      console.warn(`[PROCESO-DEBUG] No se pudo extraer la clave de acceso del XML`);
+    }
+    
     const xmlFirmado = await firmarXML(
       xmlSinFirma, 
       configuracion.certificadoBase64, 
