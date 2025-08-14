@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import FacturaDetalle from '../../components/FacturaDetalle';
 // Definición de interfaces necesarias para el dashboard
@@ -295,7 +296,7 @@ export default function DashboardPage() {
   };
 
   // Exportar a CSV
-  const handleExportarCSV = () => {
+  const handleExportarCSV = (): void => {
     if (facturas.length === 0) {
       setError('No hay facturas para exportar');
       return;
@@ -424,7 +425,7 @@ export default function DashboardPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
             <select
               value={filtroAmbiente}
-              onChange={(e) => setFiltroAmbiente(e.target.value as 'Todos' | '1' | '2')}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setFiltroAmbiente(e.target.value as 'Todos' | '1' | '2')}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary focus:border-primary"
               disabled={isLoading}
             >
@@ -437,7 +438,7 @@ export default function DashboardPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
             <select
               value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value as 'Todos' | 'AUTORIZADO' | 'RECHAZADO' | 'PENDIENTE' | 'DESCONOCIDO')}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setFiltroEstado(e.target.value as 'Todos' | 'AUTORIZADO' | 'RECHAZADO' | 'PENDIENTE' | 'DESCONOCIDO')}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary focus:border-primary"
               disabled={isLoading}
             >
@@ -453,7 +454,7 @@ export default function DashboardPage() {
             <input
               type="text"
               value={filtroRuc}
-              onChange={(e) => setFiltroRuc(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setFiltroRuc(e.target.value)}
               placeholder="Ingrese RUC"
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary focus:border-primary"
               disabled={isLoading}
@@ -464,7 +465,7 @@ export default function DashboardPage() {
             <input
               type="date"
               value={filtroFechaDesde}
-              onChange={(e) => setFiltroFechaDesde(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setFiltroFechaDesde(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary focus:border-primary"
               disabled={isLoading}
             />
@@ -474,7 +475,7 @@ export default function DashboardPage() {
             <input
               type="date"
               value={filtroFechaHasta}
-              onChange={(e) => setFiltroFechaHasta(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setFiltroFechaHasta(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary focus:border-primary"
               disabled={isLoading}
             />
