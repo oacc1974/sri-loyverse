@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Configuracion } from '../models/configuracion';
 import axios from 'axios';
 
@@ -31,9 +31,9 @@ export default function PruebaSRI() {
     // Manejar checkbox (automatización)
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
-      setConfiguracion(prev => prev ? {...prev, [name]: checked} : null);
+      setConfiguracion((prev: any) => prev ? {...prev, [name]: checked} : null);
     } else {
-      setConfiguracion(prev => prev ? {...prev, [name]: value} : null);
+      setConfiguracion((prev: any) => prev ? {...prev, [name]: value} : null);
     }
   };
   
@@ -190,20 +190,26 @@ export default function PruebaSRI() {
         throw new Error('Factura no encontrada');
       }
 
-      // Enviar a procesar
-      const response = await axios.post('/api/factura/procesar', {
+      // Preparar los datos de la factura asegurando que los campos estén correctamente asignados
+      const facturaData = {
         facturaId: factura.facturaId,
         accion: 'proceso_completo',
         ambiente: configuracion.ambiente === 'produccion' ? '2' : '1',
         // Enviar certificado y clave para permitir procesamiento sin configuración guardada
         certificadoBase64: configuracion.certificadoBase64,
         claveCertificado: configuracion.claveCertificado,
+        // IMPORTANTE: Asegurar que los campos ruc y razonSocial estén correctamente asignados
+        // El RUC debe ser el número de identificación fiscal (ej: 9999999999999)
+        // La razón social debe ser el nombre de la empresa o persona (ej: EMPRESA DE PRUEBA)
         ruc: configuracion.ruc,
         razonSocial: configuracion.razonSocial,
         nombreComercial: configuracion.nombreComercial,
         direccion: configuracion.direccion,
         email: configuracion.email
-      });
+      };
+      
+      // Enviar a procesar
+      const response = await axios.post('/api/factura/procesar', facturaData);
       
       if (response.data.success) {
         setResultado(response.data);
@@ -221,6 +227,9 @@ export default function PruebaSRI() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Prueba de Integración SRI</h1>
+      <div className="fixed bottom-2 right-2 text-xs text-gray-500">
+        Última actualización: 2025-08-13 14:05
+      </div>
 
       {/* Sección de Configuración */}
       <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
@@ -431,17 +440,116 @@ export default function PruebaSRI() {
       {resultado && (
         <div className="bg-gray-100 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-2">Resultado del Procesamiento</h2>
-          <div className="overflow-auto">
+          
+          {/* Mostrar estado de la factura con color según el estado */}
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Estado de la Factura:</h3>
+            <div className={`mt-2 px-4 py-2 rounded-md inline-block font-bold ${
+              resultado.data?.estado === 'RECHAZADA' ? 'bg-red-100 text-red-800' : 
+              resultado.data?.estado === 'AUTORIZADA' ? 'bg-green-100 text-green-800' : 
+              resultado.data?.estado === 'ENVIADO' ? 'bg-blue-100 text-blue-800' :
+              resultado.data?.estado === 'FIRMADO' ? 'bg-purple-100 text-purple-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>
+              {resultado.data?.estado || 'PROCESANDO'}
+            </div>
+            
+            {/* Flujo de estados */}
+            <div className="mt-4 border-t pt-3">
+              <h4 className="font-semibold text-sm mb-2">Flujo de estados:</h4>
+              <div className="flex items-center space-x-2 text-xs">
+                <div className={`px-2 py-1 rounded ${resultado.data?.estado === 'PENDIENTE' || ['FIRMADO', 'ENVIADO', 'AUTORIZADA', 'RECHAZADA'].includes(resultado.data?.estado) ? 'bg-green-100' : 'bg-gray-100'}`}>PENDIENTE</div>
+                <div className="text-gray-400">→</div>
+                <div className={`px-2 py-1 rounded ${resultado.data?.estado === 'FIRMADO' || ['ENVIADO', 'AUTORIZADA', 'RECHAZADA'].includes(resultado.data?.estado) ? 'bg-green-100' : 'bg-gray-100'}`}>FIRMADO</div>
+                <div className="text-gray-400">→</div>
+                <div className={`px-2 py-1 rounded ${resultado.data?.estado === 'ENVIADO' || ['AUTORIZADA', 'RECHAZADA'].includes(resultado.data?.estado) ? 'bg-green-100' : 'bg-gray-100'}`}>ENVIADO</div>
+                <div className="text-gray-400">→</div>
+                <div className={`px-2 py-1 rounded ${resultado.data?.estado === 'AUTORIZADA' ? 'bg-green-100' : resultado.data?.estado === 'RECHAZADA' ? 'bg-red-100' : 'bg-gray-100'}`}>
+                  {resultado.data?.estado === 'AUTORIZADA' ? 'AUTORIZADA' : resultado.data?.estado === 'RECHAZADA' ? 'RECHAZADA' : 'PENDIENTE'}
+                </div>
+              </div>
+            </div>
+            
+            {resultado.data?.numeroAutorizacion && (
+              <div className="mt-2">
+                <span className="font-semibold">Número de Autorización:</span> {resultado.data.numeroAutorizacion}
+              </div>
+            )}
+            {resultado.data?.fechaAutorizacion && (
+              <div className="mt-1">
+                <span className="font-semibold">Fecha de Autorización:</span> {resultado.data.fechaAutorizacion}
+              </div>
+            )}
+            
+            {/* Mostrar mensaje de error detallado si la factura fue rechazada */}
+            {resultado.data?.estado === 'RECHAZADA' && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3">
+                <h4 className="font-bold text-red-700">Motivo del rechazo:</h4>
+                {resultado.data?.mensajeError ? (
+                  <p className="text-red-700 mt-1">{resultado.data.mensajeError}</p>
+                ) : (
+                  <p className="text-red-700 mt-1">El SRI rechazó la factura. Revise los detalles en la respuesta completa.</p>
+                )}
+                
+                {/* Mostrar errores específicos de la respuesta SRI si existen */}
+                {resultado.data?.respuestaSRI?.comprobantes?.comprobante?.mensajes?.mensaje && (
+                  <div className="mt-2 pl-4 border-l-2 border-red-300">
+                    <h5 className="font-semibold text-red-700">Detalles del SRI:</h5>
+                    <ul className="list-disc pl-5 text-sm">
+                      {Array.isArray(resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje) ? 
+                        resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje.map((msg: any, idx: number) => (
+                          <li key={idx} className="mt-1">
+                            <span className="font-medium">{msg.tipo} {msg.identificador}:</span> {msg.mensaje}
+                            {msg.informacionAdicional && <div className="text-xs mt-1 pl-2">Info adicional: {msg.informacionAdicional}</div>}
+                          </li>
+                        )) : (
+                          <li className="mt-1">
+                            <span className="font-medium">
+                              {resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje.tipo} 
+                              {resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje.identificador}:
+                            </span> 
+                            {resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje.mensaje}
+                            {resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje.informacionAdicional && 
+                              <div className="text-xs mt-1 pl-2">
+                                Info adicional: {resultado.data.respuestaSRI.comprobantes.comprobante.mensajes.mensaje.informacionAdicional}
+                              </div>
+                            }
+                          </li>
+                        )
+                      }
+                    </ul>
+                  </div>
+                )}
+                
+                <div className="mt-3 text-sm bg-yellow-50 p-2 rounded border border-yellow-200">
+                  <strong>Sugerencia:</strong> Revise el XML generado a continuación para identificar posibles problemas de formato o datos incorrectos.
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="overflow-auto mb-4">
+            <h3 className="text-lg font-semibold mb-2">Detalles de la Respuesta:</h3>
             <pre className="bg-gray-800 text-white p-4 rounded">
               {JSON.stringify(resultado, null, 2)}
             </pre>
           </div>
           
-          {/* Mostrar XML cuando la factura es rechazada */}
-          {resultado.data?.estado === 'RECHAZADA' && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2 text-red-600">XML Rechazado</h3>
-              <p className="mb-2 text-sm">Este es el XML que fue enviado al SRI y fue rechazado. Revise el formato y los datos para identificar el problema.</p>
+          {/* Mostrar XML siempre, no solo cuando es rechazada */}
+          <div className="mt-4">
+              <h3 className={`text-lg font-semibold mb-2 ${resultado.data?.estado === 'RECHAZADA' ? 'text-red-600' : resultado.data?.estado === 'AUTORIZADA' ? 'text-green-600' : 'text-blue-600'}`}>
+                XML Generado - {resultado.data?.estado || 'PROCESANDO'}
+              </h3>
+              <p className="mb-2 text-sm">
+                {resultado.data?.estado === 'RECHAZADA' 
+                  ? 'Este es el XML que fue enviado al SRI y fue rechazado. Revise el formato y los datos para identificar el problema.'
+                  : resultado.data?.estado === 'AUTORIZADA'
+                    ? 'Este es el XML que fue enviado al SRI y fue autorizado correctamente.'
+                    : 'Este es el XML que fue generado y enviado al SRI. Pendiente de autorización.'}
+              </p>
+              <p className="mb-2 text-xs bg-yellow-50 p-2 rounded border border-yellow-200">
+                <strong>Nota:</strong> El XML se regenera completamente cada vez que se procesa la factura, asegurando que se apliquen todas las correcciones.
+              </p>
               
               {/* Pestañas para alternar entre XML firmado y sin firmar */}
               <div className="border-b border-gray-200 mb-4">
@@ -513,9 +621,12 @@ export default function PruebaSRI() {
                 </div>
               )}
             </div>
-          )}
         </div>
       )}
+      {/* Indicador de hora de actualización */}
+      <div className="fixed bottom-2 right-2 text-xs text-gray-500">
+        Última actualización: 13/08/2025 13:45
+      </div>
     </div>
   );
 }
